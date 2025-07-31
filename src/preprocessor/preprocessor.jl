@@ -13,7 +13,7 @@ function preprocess_node(node::Expr, mod::Module)::ASTNode
         node.args[i] = preprocess_node(node.args[i], mod)
     end
 
-    node = preprocess_transform(tag_match(PPNode, node), node, mod)
+    node = preprocess_transform(tag_match(PreTag, node), node, mod)
 
     node
 end

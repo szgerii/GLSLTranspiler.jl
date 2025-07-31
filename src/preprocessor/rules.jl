@@ -1,19 +1,19 @@
-@def_tagtype PPNode PPDefault
+@def_tagtype PreTag PPDefault
 
-struct UpdateAssignment <: PPNode end
-struct StringCall <: PPNode end
-struct ComparisonChain <: PPNode end
+struct PreUpdateAssignmentTag <: PreTag end
+struct PreStringCallTag <: PreTag end
+struct PreComparisonChainTag <: PreTag end
 
 @def_eqs(
-    PPNode,
-    (StringCall, :string),
-    (ComparisonChain, :comparison)
+    PreTag,
+    (PreStringCallTag, :string),
+    (PreComparisonChainTag, :comparison)
 )
 
 @def_pre_rules(
-    PPNode,
+    PreTag,
     Expr,
-    (UpdateAssignment, ex -> begin
+    (PreUpdateAssignmentTag, ex -> begin
         op = string(ex.head)
         length(op) > 1 && op[end] == '='
     end)

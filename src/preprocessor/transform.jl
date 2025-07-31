@@ -1,6 +1,6 @@
 preprocess_transform(::Type{PPDefault}, node::Expr, _::Module)::ASTNode = node
 
-function preprocess_transform(::Type{UpdateAssignment}, node::Expr, mod::Module)::ASTNode
+function preprocess_transform(::Type{PreUpdateAssignmentTag}, node::Expr, mod::Module)::ASTNode
     name = string(node.head)
 
     @assert length(name) > 1
@@ -19,9 +19,9 @@ function preprocess_transform(::Type{UpdateAssignment}, node::Expr, mod::Module)
     new_node
 end
 
-preprocess_transform(::Type{StringCall}, node::Expr, _::Module)::ASTNode = Expr(:call, :string, node.args...)
+preprocess_transform(::Type{PreStringCallTag}, node::Expr, _::Module)::ASTNode = Expr(:call, :string, node.args...)
 
-function preprocess_transform(::Type{ComparisonChain}, node::Expr, _::Module)::ASTNode
+function preprocess_transform(::Type{PreComparisonChainTag}, node::Expr, _::Module)::ASTNode
     n = length(node.args)
     args = [node.args[i] for i in 1:2:n]
     ops = [node.args[i] for i in 2:2:n-1]
