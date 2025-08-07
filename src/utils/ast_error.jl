@@ -1,6 +1,4 @@
-export ast_error
-
-function ast_error(ex::Expr, message...)
+function ast_error(ex::ASTNode, message...)
     str = ':' * string(ex.head)
 
     for arg in ex.args
@@ -19,5 +17,3 @@ function ast_error(ex::Expr, message...)
 
     error(message..., "\nThe above error occured while processing the following AST node:\n$str")
 end
-
-ast_error(tt::TypeTree, message...) = ast_error(tt.original[], message...)

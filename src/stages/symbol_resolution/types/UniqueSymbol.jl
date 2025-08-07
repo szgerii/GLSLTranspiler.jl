@@ -1,0 +1,12 @@
+struct UniqueSymbol
+    id::Symbol
+    original_sym::Symbol
+    def_scope_id::IDChain
+end
+
+Base.string(usym::UniqueSymbol) = string(usym.id)
+Base.show(io::IO, usym::UniqueSymbol) = print(io, string(usym))
+
+const USYM_INFIX = "_USYM_"
+get_usym_id(original_sym::Symbol, id_chain::IDChain) = Symbol(string(original_sym), USYM_INFIX, join(id_chain, '_'))
+get_usym_id(original_sym::Symbol, scope::Ref{Scope}) = get_usym_id(original_sym, scope[].id_chain)

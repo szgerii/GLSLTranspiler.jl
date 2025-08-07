@@ -1,42 +1,16 @@
-export @build_tast
-
-# asserts are things i assume to be true regarding the structure of function definition expressions 
-# errors are for invalid expression inputs caused by user error
-
-macro build_tast(f::Expr, detailed_info=false)
-    f.head == :function || ast_error(f, "Attempting to use @build_tast for a non-function expression")
-
-    @assert length(f.args) > 0
-    @assert f.args[2].head == :block
-
-    original_f = deepcopy(f)
-
-    println("Original AST:")
-    print_ast(f)
-    println()
-
-    Base.remove_linenums!(f)
-
-    f = preprocess_ast(f, __module__)
-
-    if detailed_info
-        println("Preprocessed AST:")
-        print_ast(f)
-        println()
-    end
-
-    st = ScopeTree()
-    fscope = get_fn_scope(st)
-
-    fdecl = f.args[1]
-    fname = fdecl.args[1]
+function run_tast(
+    mod::Module, scoped_ast::ScopedASTNode,
+    root_scope::Ref{Scope}, usyms::Vector{UniqueSymbol}, usym_table::ScopedUSymMapping
+)
+    fdecl = scoped_ast.children[1].original[]
 
     for param_decl in fdecl.args[2:end]
-        @assert isa(param_decl, Expr)
+        if !(param_decl isa Expr)
+            ast_error(scoped_ast.original[], "Couldn't transpile function without explicitly typed parameter '$param_decl'")
+        end
 
         if param_decl.head != :(::)
-            ast_error(f,
-                "Cannot use @build_tast for a method without explicit parameter types (param $param_decl of a method for function $fname)")
+            ast_error(param_decl, "Unsupported parameter declaration")
         end
 
         pname = string(param_decl.args[1])
@@ -51,7 +25,6 @@ macro build_tast(f::Expr, detailed_info=false)
 
     fbody = f.args[2]
 
-    # bottom-up traversal of AST to determine expr types
     root = Ref(f)
     typed_ast = TypeTree(root)
     for child in fbody.args
@@ -74,37 +47,17 @@ macro build_tast(f::Expr, detailed_info=false)
 
     typed_ast.type = fscope.vars["%return"].type
 
-    println("Generated typed AST:")
-    print_tast(typed_ast)
-    println()
-
-    println("Determined scope structure:")
-    print_scope_tree(st)
-
-    println("\nDetected uniforms:")
-    for (key, var_data) in st.glob[].vars
-        println("$key : ", var_data.type)
-    end
-
-    :($(esc(original_f)))
+    return (typed_ast)
 end
 
 # Expression nodes
-function traverse_node(node::Expr, mod::Module, scope::Scope, scope_tree::ScopeTree)::TypeTree
+function traverse_node(node::Expr, mod::Module, scope::Scope)::TypeTree
     tag = tag_match(TASTNodeTag, node)
 
-    if tag == TASTUnsupportedTag
-        ast_error(node, "Unsupported expression type: $(node.head)")
-    end
+    tag == TASTUnsupportedTag && ast_error(node, "Unsupported expression type: $(node.head)")
 
     node_ref = Ref(node)
     gen_node = TypeTree(node_ref)
-
-    # TODO fn, do, let, comprehensions, generators
-    if node.head in [:while, :for]
-        child_scope = Scope(Ref(scope), SOFT_SCOPE)
-        scope = child_scope
-    end
 
     for child in node.args
         child_node = traverse_node(child, mod, scope, scope_tree)

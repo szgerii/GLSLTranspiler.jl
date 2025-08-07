@@ -2,7 +2,7 @@
 
 julia_version = "1.11.6"
 manifest_format = "2.0"
-project_hash = "a879b2ae466805cba093d1bf2c5e8a49eb9e76df"
+project_hash = "3bf59f1b08747f8500561743c3c3acfa9dc46260"
 
 [[deps.ArgTools]]
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
@@ -122,11 +122,11 @@ version = "1.0.3"
 
 [[deps.Tagger]]
 deps = ["Test"]
-git-tree-sha1 = "f265d0942b53d4de5c8ad5ecb9e1413d9fbdba8d"
+git-tree-sha1 = "115fa5f6f9d0ecd82a30fa3f6c9bec8e81413a9c"
 repo-rev = "main"
 repo-url = "git@github.com:szgerii/Tagger.jl.git"
 uuid = "733a735c-17b3-4329-8b81-ea0597397936"
-version = "0.0.3"
+version = "0.0.4"
 
 [[deps.Tar]]
 deps = ["ArgTools", "SHA"]

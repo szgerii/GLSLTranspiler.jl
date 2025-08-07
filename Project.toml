@@ -5,10 +5,12 @@ version = "0.0.1"
 
 [deps]
 InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
+Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 Tagger = "733a735c-17b3-4329-8b81-ea0597397936"
 
 [compat]
 InteractiveUtils = "1.11.0"
+Logging = "1.11.0"
 Pkg = "1.11.0"
 Tagger = "^0"

@@ -1,4 +1,4 @@
-# TODO is there a way to do this without using REPL tools? (TASTNodeRef definition)
+# TODO is there a way to do this without using REPL tools? (see subtypes in TASTNodeRef definition)
 using InteractiveUtils
 
 abstract type TASTNode end
@@ -34,8 +34,12 @@ end
 
 to_ast(::Type{T}) where {T<:TASTLiteral} = nothing
 
+to_tast(::Type{T}) where T = error("Found value of unsupported type: ", T)
 to_tast(::Type{T}) where {T<:ASTLiteral} = nothing
 to_tast(::Type{<:Function}) = TASTFunction
+
+# constructors
+to_tast(::Type{DataType}) = TASTFunction
 
 @define_tast_bijection Int32 TASTInt32
 @define_tast_bijection Int64 TASTInt64

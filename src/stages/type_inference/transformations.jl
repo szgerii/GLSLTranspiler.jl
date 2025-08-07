@@ -1,9 +1,4 @@
-function tast_transform(::Type{TASTDefault}, node::TypeTree, _::Module, _::Scope, _::ScopeTree)::TypeTree
-    # node_str = node.original[] isa Expr ? node.original[].head : node.original[]
-    # println("Skipping node: ", node_str)
-
-    node
-end
+tast_transform(::Type{TASTDefault}, node::TypeTree, _::Module, _::Scope, _::ScopeTree)::TypeTree = node
 
 function tast_transform(::Type{TASTAssignmentTag}, node::TypeTree, mod::Module, scope::Scope, scope_tree::ScopeTree)::TypeTree
     @assert length(node.children) == 2

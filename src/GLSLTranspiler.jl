@@ -2,25 +2,33 @@ module GLSLTranspiler
 
 using Tagger
 
-# Types
-include("typed_ast/types/ASTNodes.jl")
-include("typed_ast/types/TASTNodes.jl")
-include("typed_ast/VarData.jl")
-include("typed_ast/TypeTree.jl")
+# Base Types
+include("types/includes.jl")
+
+using .BaseTypes
 
 # Utils
 include("utils/ast_error.jl")
-include("utils/print_ast.jl")
+include("utils/tree_print.jl")
+include("utils/expr_utils.jl")
+include("utils/skip.jl")
 
 # Preprocessor
-include("preprocessor/rules.jl")
-include("preprocessor/transform.jl")
-include("preprocessor/preprocessor.jl")
+include("stages/preprocessor/includes.jl")
 
-# TAST
-include("typed_ast/scopes.jl")
-include("typed_ast/rules.jl")
-include("typed_ast/expr_transforms.jl")
-include("typed_ast/build_tast.jl")
+# Scope Discovery
+include("stages/scope_discovery/includes.jl")
+
+# Symbol Resolution
+include("stages/symbol_resolution/includes.jl")
+
+# Type Inference
+# include("stages/type_inference/includes.jl")
+
+# Pipelines
+include("pipelines/glsl_pipeline.jl")
+
+# Public API stuff for transpilation
+include("transpile.jl")
 
 end
