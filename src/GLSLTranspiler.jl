@@ -23,7 +23,7 @@ include("stages/scope_discovery/includes.jl")
 include("stages/symbol_resolution/includes.jl")
 
 # Type Inference
-# include("stages/type_inference/includes.jl")
+include("stages/type_inference/includes.jl")
 
 # Pipelines
 include("pipelines/glsl_pipeline.jl")

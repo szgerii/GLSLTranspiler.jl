@@ -3,7 +3,6 @@
 struct TASTAssignmentTag <: TASTNodeTag end
 struct TASTCallTag <: TASTNodeTag end
 struct TASTReturnTag <: TASTNodeTag end
-struct TASTIfTag <: TASTNodeTag end
 struct TASTTernaryTag <: TASTNodeTag end
 struct TASTBlockTag <: TASTNodeTag end
 struct TASTLogicalChainTag <: TASTNodeTag end
@@ -22,7 +21,6 @@ struct TASTUnsupportedTag <: TASTNodeTag end
     (TASTAssignmentTag, :(=)),
     (TASTCallTag, :call),
     (TASTReturnTag, :return),
-    (TASTIfTag, :if),
     (TASTBlockTag, :block),
     (TASTLogicalChainTag, :(&&), :(||)),
     (TASTUnsupportedTag, :try)

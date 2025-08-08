@@ -1,8 +1,15 @@
-function run_tast(
+using ..GLSLTranspiler: ast_error, print_traverse
+
+function run_type_inference(
     mod::Module, scoped_ast::ScopedASTNode,
     root_scope::Ref{Scope}, usyms::Vector{UniqueSymbol}, usym_table::ScopedUSymMapping
 )
+    ctx = TIContext(mod, root_scope, map(usym -> (usym, nothing), usyms), usym_table, Nothing)
+
     fdecl = scoped_ast.children[1].original[]
+
+    fname = fdecl.args[1]
+    add_type!(ctx, get_usym_id(fname, FUNCTION_SCOPE_ID), ASTFunction)
 
     for param_decl in fdecl.args[2:end]
         if !(param_decl isa Expr)
@@ -13,101 +20,76 @@ function run_tast(
             ast_error(param_decl, "Unsupported parameter declaration")
         end
 
-        pname = string(param_decl.args[1])
-        src_type = eval(param_decl.args[2])
+        name_sym = param_decl.args[1]
+        type_sym = param_decl.args[2]
+
+        @assert name_sym isa Symbol
+        @assert type_sym isa Symbol
+
+        pname = string(name_sym)
+        src_type = mod.eval(type_sym)
         tast_type = to_tast(src_type)
 
-        isnothing(tast_type) && ast_error(f,
-            "Invalid method parameter type: $src_type (for parameter $pname)")
+        if isnothing(tast_type)
+            ast_error(param_decl, "Invalid method parameter type: $src_type (for parameter $pname)")
+        end
 
-        fscope.vars[pname] = VarData(pname, tast_type)
+        target_usym_id = get_usym_id(name_sym, FUNCTION_SCOPE_ID)
+        idx = find_usym_index(target_usym_id, ctx)
+
+        if isnothing(idx)
+            ast_error(param_decl, "Unique symbol for param $name_sym was not found in the output of the symbol resolution stage")
+        end
+
+        add_type!(ctx, target_usym_id, tast_type)
     end
 
-    fbody = f.args[2]
+    typed_ast = TypedASTNode(scoped_ast)
 
-    root = Ref(f)
-    typed_ast = TypeTree(root)
-    for child in fbody.args
-        child_node = traverse_node(child, __module__, fscope, st)
+    # clone fn declaration sub-tree without type inference
+    push!(typed_ast.children, clone_subtree(scoped_ast.children[1]))
 
-        push!(typed_ast.children, child_node)
-    end
+    # transform fn body sub-tree from scoped ast into typed ast
+    push!(typed_ast.children, gen_typed_ast(scoped_ast.children[2], ctx))
 
-    last_expr_type = typed_ast.children[end].type
+    last_expr = typed_ast.children[2].children[end]
 
-    if haskey(fscope.vars, "%return")
-        rtype = fscope.vars["%return"].type
-        (last_expr_type != rtype) && ast_error(f,
-            "Invalid last statement in function: last statement's type ($last_expr_type) doesn't match the function's previously inferred return type ($rtype)")
+    if ctx.return_type != Nothing
+        if last_expr.type != ctx.return_type
+            ast_error(last_expr.original[],
+                "Invalid last statement in function: last statement's type ($(last_expr.type)) doesn't match the function's previously inferred return type ($rtype)")
+        end
     else
-        !(last_expr_type in literal_node_types || last_expr_type == TASTVoid) && ast_error(f,
-            "Invalid last statement in function: the function's return type cannot be what is being inferred from the last statement ($last_expr_type)")
-        fscope.vars["%return"] = VarData("%return", last_expr_type)
+        if !(last_expr.type <: ASTValueType || last_expr.type == ASTVoid)
+            ast_error(last_expr.original[],
+                "Invalid last statement in function: the function's return type cannot be what is being inferred from the last statement ($(last_expr.type))")
+        end
+
+        ctx.return_type = last_expr.type
     end
 
-    typed_ast.type = fscope.vars["%return"].type
+    typed_ast.children[2].type = ctx.return_type
+    typed_ast.type = ctx.return_type
+
+    println("\nUSym Types:")
+    for (usym, type) in ctx.typed_usyms
+        println(usym.id, " => ", type)
+    end
+    println()
 
     return (typed_ast)
 end
 
-# Expression nodes
-function traverse_node(node::Expr, mod::Module, scope::Scope)::TypeTree
-    tag = tag_match(TASTNodeTag, node)
-
-    tag == TASTUnsupportedTag && ast_error(node, "Unsupported expression type: $(node.head)")
-
-    node_ref = Ref(node)
-    gen_node = TypeTree(node_ref)
-
-    for child in node.args
-        child_node = traverse_node(child, mod, scope, scope_tree)
-        push!(gen_node.children, child_node)
+function clone_subtree(root::ScopedASTNode)::TypedASTNode
+    if !(root.original[] isa Expr)
+        return TypedASTNode(root)
     end
 
-    gen_node = tast_transform(tag, gen_node, mod, scope, scope_tree)
+    typed_node = TypedASTNode(root)
 
-    gen_node
-end
-
-# Symbol nodes
-function traverse_node(node::Symbol, mod::Module, scope::Scope, scope_tree::ScopeTree)::TypeTree
-    tast_type = nothing
-
-    # search in determined type array...
-    vdata = get_var_data(string(node), scope)
-    if !isnothing(vdata)
-        tast_type = vdata.type
+    for child in root.children
+        push!(typed_node.children, clone_subtree(child))
     end
 
-    # ...then in the calling module's scope
-    if isnothing(tast_type) && isdefined(mod, node)
-        vname = string(node)
-        tast_type = to_tast(typeof(@eval mod $node))
-
-        if tast_type <: TASTLiteral
-            scope_tree.glob[].vars[vname] = VarData(vname, tast_type)
-        end
-    end
-
-    node_ref = Ref(node)
-
-    # if we found it in either, mark it as that type
-    if !isnothing(tast_type)
-        return TypeTree(tast_type, node_ref)
-    end
-
-    # if we didn't, mark it as a void_sym (an undefined symbol)
-    # we dont error here, as it could still be part of a valid expression (e.g. value assignment lhs)
-    TypeTree(TASTVoidSym, node_ref)
-end
-
-# Literal nodes
-function traverse_node(node::ASTLiteral, _::Module, _::Scope, _::ScopeTree)::TypeTree
-    src_type = typeof(node)
-    tast_type = to_tast(src_type)
-
-    isnothing(tast_type) && ast_error(node, "Unsupported literal type: $src_type (for literal $node)")
-
-    node_ref = Ref(node)
-    TypeTree(tast_type, node_ref)
+    typed_node
 end

@@ -17,7 +17,7 @@ function GLSLTranspiler.tree_node_string(node::ScopedASTNode)
 
     # print scope information for global scope before the base fn def node
     ast_node = node.original[]
-    if ast_node isa Expr && ast_node.head == :function && node.scope[].id_chain == [0x1, 0x1]
+    if ast_node isa Expr && ast_node.head == :function && node.scope[].id_chain == FUNCTION_SCOPE_ID
         prefix = "[" * string(node.scope[].parent[]) * "]\n"
     end
 

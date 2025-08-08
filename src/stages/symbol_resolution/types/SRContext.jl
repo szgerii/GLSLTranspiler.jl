@@ -1,4 +1,6 @@
-const USymMapping = Dict{Symbol,UniqueSymbol}
+export USymMapping, ScopedUSymMapping
+
+const USymMapping = Dict{Symbol,Symbol}
 const ScopedUSymMapping = Dict{IDChain,USymMapping}
 
 struct SRContext
@@ -34,7 +36,7 @@ function add_mapping!(ctx::SRContext, sym::Symbol, scope::Ref{Scope}, usym::Uniq
         error("Trying to re-register mapping for $sym => $(usym.id) in scope #$(id_chain_string(id_chain))")
     end
 
-    ctx.usym_mappings[id_chain][sym] = usym
+    ctx.usym_mappings[id_chain][sym] = usym.id
 end
 
 function find_local_in_parents(sym::Symbol, id_chain::IDChain, ctx::SRContext)::Union{UniqueSymbol,Nothing}

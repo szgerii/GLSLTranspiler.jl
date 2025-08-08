@@ -10,12 +10,12 @@ function replace_with_usyms!(node::ScopedASTNode, ctx::SRContext)
             return
         end
 
-        usym = get(mappings, node.original[], nothing)
+        usym_id = get(mappings, node.original[], nothing)
 
-        if isnothing(usym)
+        if isnothing(usym_id)
             return
         end
 
-        node.original[] = usym.id
+        node.original[] = usym_id
     end
 end

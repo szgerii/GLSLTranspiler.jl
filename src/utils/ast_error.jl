@@ -1,4 +1,10 @@
-function ast_error(ex::ASTNode, message...)
+function ast_error(node::ASTNode, message...)
+    str = ast_string(node)
+
+    error(message..., "\nThe above error occured while processing the following AST node:\n$str")
+end
+
+function ast_string(ex::Expr)
     str = ':' * string(ex.head)
 
     for arg in ex.args
@@ -6,14 +12,12 @@ function ast_error(ex::ASTNode, message...)
 
         if arg isa Expr
             str *= "Expr (:$(arg.head))"
-        elseif arg isa Symbol
-            str *= ":$(string(arg))"
-        elseif arg isa String
-            str *= "\"$arg\""
         else
-            str *= string(arg)
+            str *= ast_string(arg)
         end
     end
-
-    error(message..., "\nThe above error occured while processing the following AST node:\n$str")
 end
+
+ast_string(sym::Symbol) = ":$sym"
+ast_string(str::String) = "\"$str\""
+ast_string(node::ASTNode) = string(node)

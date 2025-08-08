@@ -6,6 +6,7 @@ const glsl_pipeline = Pipeline("Julia -> GLSL",
     Vector([
         Preprocessor.PreprocessorStage,
         ScopeDiscovery.ScopeDiscoveryStage,
-        SymbolResolution.SymbolResolutionStage
+        SymbolResolution.SymbolResolutionStage,
+        TypeInference.TypeInferenceStage
     ])
 )

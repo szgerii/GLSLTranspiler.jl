@@ -12,7 +12,7 @@ rand_return() = rand() < 0.5 ? "asd" : 2
 bx = 2
 test_global = 3
 
-@skip @transpile GLSLTranspiler.glsl_pipeline function test_fn(a::Int64, b::Float64)
+@transpile GLSLTranspiler.glsl_pipeline function test_fn(a::Int64, b::Float64)
     am, bm, cm = 1, 2.0, "lol"
 
     a += test_global
@@ -40,8 +40,8 @@ test_global = 3
     acc = 0
 
     while false
-        for i in 1:5
-        end
+        #for i in 1:5
+        #end
 
         bx = begin
             sg = 2
@@ -56,8 +56,8 @@ test_global = 3
     #    x
     #end
 
-    function some_func()
-    end
+    #function some_func()
+    #end
 
     some_bool = a < b <= 7 < d > acc >= 9.0
 
@@ -91,7 +91,7 @@ some_global = 2
 some_other_global = 3
 
 #@transpile GLSLTranspiler.glsl_pipeline function test_fn(a, b::Float64)
-@glsl function test_fn(a, b::Float64)
+@skip @glsl function test_fn(a::Int, b::Int)
     # global 1
     some_global = 2
     # local 1.1 because of assignment
@@ -145,4 +145,3 @@ end
 
 println("\nExecuting function:")
 println(test_fn(2, 3.5))
-#println(test_fn())

@@ -1,6 +1,8 @@
-tast_transform(::Type{TASTDefault}, node::TypeTree, _::Module, _::Scope, _::ScopeTree)::TypeTree = node
+using ..GLSLTranspiler: ast_error
 
-function tast_transform(::Type{TASTAssignmentTag}, node::TypeTree, mod::Module, scope::Scope, scope_tree::ScopeTree)::TypeTree
+infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTDefault}, _::TIContext) = node
+
+function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTAssignmentTag}, ctx::TIContext)
     @assert length(node.children) == 2
 
     lhs = node.children[1]
@@ -8,113 +10,112 @@ function tast_transform(::Type{TASTAssignmentTag}, node::TypeTree, mod::Module, 
 
     vname = string(lhs.original[])
 
-    rhs.type == TASTVoid && ast_error(node.original[],
-        "Couldn't determine right side type of assignment expression. This might be the result of using an unsupported Julia feature.")
+    if is_void(rhs.type)
+        ast_error(node.original[],
+            "Couldn't determine right side type of assignment expression. This might be the result of using an unsupported Julia feature.")
+    end
 
-    if lhs.type == TASTVoidSym
+    if lhs.type == ASTVoidSym
         # a new symbol is being defined
-        @assert !haskey(scope.vars, vname)
+        @assert isnothing(find_type(lhs.original[], ctx))
 
-        scope.vars[vname] = VarData(vname, rhs.type)
+        add_type!(ctx, lhs.original[], rhs.type)
     elseif lhs.type != rhs.type
-        # TODO: allow this through numbered var names
+        # TODO: allow this through typed usyms
         ast_error(node.original[],
             "Reassignment to new type: Trying to bind variable '$vname' of type '$(lhs.type)' to a value of type '$(rhs.type)'. This is not allowed for now, but support will be added later.")
     end
 
     node.type = rhs.type
-    node
 end
 
-function tast_transform(::Type{TASTCallTag}, node::TypeTree, mod::Module, scope::Scope, scope_tree::ScopeTree)::TypeTree
+function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTCallTag}, ctx::TIContext)
     fsym = node.children[1]
     args = node.children[2:end]
 
-    fsym.type != TASTFunction && ast_error(node.original[],
-        "Trying to call a symbol that is not a function (", fsym.original[], ")")
-
-    for arg in args
-        !(arg.type <: TASTLiteral) && ast_error(node.original[],
-            "Trying to use a value for a function argument whose type could not be inferred")
+    if fsym.type != ASTFunction
+        ast_error(node.original[],
+            "Trying to call a symbol that is not a function ($(fsym.original[]) isa $(fsym.type))")
     end
 
-    f = getproperty(mod, fsym.original[])
+    for arg in args
+        if !(arg.type <: ASTValueType)
+            ast_error(node.original[],
+                "Trying to use a value for a function argument whose type could not be inferred")
+        end
+    end
+
+    f = getproperty(ctx.defining_module, fsym.original[])
     args_tuple = Tuple(map(arg -> to_ast(arg.type), args))
 
-    !hasmethod(f, args_tuple) && ast_error(node.original[],
-        "No method found for call to $f with arguments of type $args_tuple")
+    if !hasmethod(f, args_tuple)
+        ast_error(node.original[],
+            "No method found for call to $f with arguments of type $args_tuple")
+    end
 
     rtypes = collect(Set(Base.return_types(f, args_tuple)))
 
-    if length(rtypes) == 0 || (length(rtypes) == 1 && rtypes[1] == Nothing)
-        node.type = TASTVoid
+    if length(rtypes) == 0 || (rtypes == [Nothing])
+        node.type = ASTVoid
     elseif length(rtypes) == 1 && rtypes[1] != Union{}
         # clear return type
         tast_type = to_tast(rtypes[1])
-        isnothing(tast_type) && ast_error(node.original[],
-            "Function $f returns invalid type: ", rtypes[1])
+
+        if isnothing(tast_type)
+            ast_error(node.original[], "Function $f returns invalid type: ", rtypes[1])
+        end
 
         node.type = tast_type
     else
-        # TODO infer from code_typed
+        # TODO maybe infer from code_typed
         ast_error(node.original[],
             "Couldn't clearly infer return type for function $f called with arguments of type $args_tuple, possible return types are: $rtypes")
     end
-
-    node
 end
 
-function tast_transform(::Type{TASTReturnTag}, node::TypeTree, mod::Module, scope::Scope, scope_tree::ScopeTree)::TypeTree
+function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTReturnTag}, ctx::TIContext)
     rtype = node.children[1].type
-    fscope = get_fn_scope(scope_tree)
 
-    if haskey(fscope.vars, "%return")
-        if fscope.vars["%return"].type != rtype
+    if ctx.return_type != Nothing
+        if ctx.return_type != rtype
             ast_error(node.original[],
-                "Cannot use @build_ast for functions whose return type is not a single, static type")
+                "Conflicting return types inferred for the transpilation's input function")
         end
-    elseif !(rtype <: TASTLiteral || rtype == TASTVoid)
+    elseif !(rtype <: ASTValueType || rtype == ASTVoid)
         ast_error(node.original[],
             "Invalid return statement: the type being inferred from the return statement is not a valid return type ($rtype)")
+    else
+        ctx.return_type = rtype
     end
 
-    fscope.vars["%return"] = VarData("%return", rtype)
-
     node.type = rtype
-    node
 end
 
-function tast_transform(::Type{TASTIfTag}, node::TypeTree, mod::Module, scope::Scope, scope_tree::ScopeTree)::TypeTree
-    @assert node.original[].args[2].head == :block
-    @assert node.original[].args[3].head in [:block, :elseif]
-
-    node
-end
-
-function tast_transform(::Type{TASTTernaryTag}, node::TypeTree, _::Module, _::Scope, _::ScopeTree)::TypeTree
+function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTTernaryTag}, ctx::TIContext)
     @assert length(node.original[].args) == 3
 
     t1 = node.children[2].type
     t2 = node.children[3].type
 
-    t1 != t2 && ast_error(node.original[],
-        "Invalid ternary operator: The different branches resolve to different return types ($t1 and $t2)")
-
-    node.type = t1
-    node
-end
-
-function tast_transform(::Type{TASTBlockTag}, node::TypeTree, mod::Module, scope::Scope, scope_tree::ScopeTree)::TypeTree
-    node.type = length(node.children) > 0 ? node.children[end].type : TASTVoid
-    node
-end
-
-function tast_transform(::Type{TASTLogicalChainTag}, node::TypeTree, _::Module, scope::Scope, scope_tree::ScopeTree)::TypeTree
-    for arg in node.children
-        arg.type != TASTBool && ast_error(node,
-            "Found invalid type in a logical chaining operator's argument. Expected $TASTBool, got $(arg.type) instead.")
+    if t1 != t2
+        ast_error(node.original[],
+            "Invalid ternary operator: The different branches resolve to different return types ($t1 and $t2)")
     end
 
-    node.type = TASTBool
-    node
+    node.type = t1
+end
+
+function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTBlockTag}, ctx::TIContext)
+    node.type = length(node.children) > 0 ? node.children[end].type : ASTVoid
+end
+
+function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTLogicalChainTag}, ctx::TIContext)
+    for arg in node.children
+        if arg.type != ASTBool
+            ast_error(node,
+                "Found invalid type in a logical chaining operator's argument. Expected ASTBool, got $(arg.type) instead.")
+        end
+    end
+
+    node.type = ASTBool
 end
