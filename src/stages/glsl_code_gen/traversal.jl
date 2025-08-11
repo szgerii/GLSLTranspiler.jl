@@ -15,7 +15,7 @@ function glsl_cg_traverse(node::GLSLLiteral, ctx::GLSLCodeGenContext)
 end
 
 glsl_cg_traverse(node::GLSLSymbol, _::GLSLCodeGenContext) = string(node.sym)
-glsl_cg_traverse(node::GLSLTypeSymbol, _::GLSLCodeGenContext) = type_to_string(node.type)
+glsl_cg_traverse(node::GLSLTypeSymbol, _::GLSLCodeGenContext) = type_to_str(node.type)
 
 function glsl_cg_traverse(node::GLSLComment, ctx::GLSLCodeGenContext)
     if node.multiline
@@ -59,7 +59,7 @@ function glsl_cg_traverse(node::GLSLBlock, ctx::GLSLCodeGenContext)
     code
 end
 
-glsl_cg_traverse(node::GLSLDeclaration, ctx::GLSLCodeGenContext) = type_to_string(node.type) * " " * glsl_cg_traverse(node.symbol, ctx)
+glsl_cg_traverse(node::GLSLDeclaration, ctx::GLSLCodeGenContext) = type_to_str(node.type) * " " * glsl_cg_traverse(node.symbol, ctx)
 
 glsl_cg_traverse(node::GLSLAssignment, ctx::GLSLCodeGenContext) = "$(glsl_cg_traverse(node.lhs, ctx)) = $(glsl_cg_traverse(node.rhs, ctx))"
 
@@ -83,6 +83,26 @@ function glsl_cg_traverse(node::GLSLReturn, ctx::GLSLCodeGenContext)
 
     if !isnothing(node.body)
         code *= " " * glsl_cg_traverse(node.body, ctx)
+    end
+
+    code
+end
+
+function glsl_cg_traverse(node::GLSLIf, ctx::GLSLCodeGenContext)
+    code = "if (" * glsl_cg_traverse(node.condition, ctx) * ") {\n"
+    code *= glsl_cg_traverse(node.body, ctx)
+    code *= "}"
+
+    for elseif_branch in node.elseif_branches
+        code *= " else if (" * glsl_cg_traverse(elseif_branch.condition, ctx) * ") {\n"
+        code *= glsl_cg_traverse(elseif_branch.body, ctx)
+        code *= "}"
+    end
+
+    if !isnothing(node.else_branch)
+        code *= " else {\n"
+        code *= glsl_cg_traverse(node.else_branch, ctx)
+        code *= "}"
     end
 
     code

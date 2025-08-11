@@ -25,6 +25,7 @@ struct AssignmentTag <: ASTConstructTag end
 struct CallTag <: ASTConstructTag end
 struct ReturnTag <: ASTConstructTag end
 struct DeclTag <: ASTConstructTag end
+struct IfTag <: ASTConstructTag end
 struct ForTag <: ASTConstructTag end
 struct WhileTag <: ASTConstructTag end
 
@@ -33,6 +34,23 @@ struct WhileTag <: ASTConstructTag end
     TypedASTNode,
     (SymbolTag, node -> node.original[] isa Symbol),
     (LiteralTag, node -> node.original[] isa ASTLiteral),
+    (IfTag, node -> begin
+        expr = node.original[]
+
+        if !(expr isa Expr) || expr.head != :if
+            return false
+        end
+
+        arg_count = length(expr.args)
+
+        if arg_count == 2
+            return expr.args[2] isa Expr && expr.args[2].head == :block
+        elseif arg_count == 3
+            return expr.args[3] isa Expr && expr.args[3].head == :elseif
+        end
+
+        return false
+    end)
 )
 
 Tagger.get_eq_projection(::Type{ASTConstructTag}, ::Type{TypedASTNode}) =

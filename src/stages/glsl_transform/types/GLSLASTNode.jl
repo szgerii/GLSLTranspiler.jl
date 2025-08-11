@@ -1,5 +1,5 @@
 export GLSLASTNode, GLSLComment, GLSLEmptyNode, GLSLLiteral, GLSLSymbol, GLSLTypeSymbol, GLSLBlock, GLSLDeclaration,
-    GLSLAssignment, GLSLCall, GLSLReturn, GLSLFor, GLSLWhile
+    GLSLAssignment, GLSLCall, GLSLReturn, GLSLIf, GLSLFor, GLSLWhile
 
 abstract type GLSLASTNode end
 
@@ -57,6 +57,18 @@ GLSLCall(fn_name::Union{GLSLSymbol,GLSLTypeSymbol}, args::Vararg{GLSLASTNode}) =
 struct GLSLReturn <: GLSLASTNode
     body::Union{GLSLASTNode,Nothing}
 end
+
+mutable struct GLSLIf <: GLSLASTNode
+    condition::GLSLASTNode
+    body::GLSLBlock
+    elseif_branches::Vector{GLSLIf}
+    else_branch::Union{GLSLBlock,Nothing}
+end
+
+GLSLIf(condition::GLSLASTNode, body::GLSLBlock) =
+    GLSLIf(condition, body, Vector(), nothing)
+GLSLIf(condition::GLSLASTNode, body::GLSLBlock, else_branch::GLSLBlock) =
+    GLSLIf(condition, body, Vector(), else_branch)
 
 struct GLSLFor <: GLSLASTNode
     definitions::Vector{GLSLASTNode}

@@ -5,7 +5,7 @@ using ..GLSLTranspiler.GLSLTransform
 using Tagger
 
 include("types/GLSLCodeGenContext.jl")
-include("type_to_string.jl")
+include("type_to_str.jl")
 include("traversal.jl")
 include("run.jl")
 

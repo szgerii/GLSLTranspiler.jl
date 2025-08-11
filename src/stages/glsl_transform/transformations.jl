@@ -79,6 +79,95 @@ function glsl_transform!(state::GLSLTransformState, ::Type{DeclTag}, ctx::GTCont
     state.glsl_node = GLSLEmptyNode()
 end
 
+function glsl_transform_if!(state::GLSLTransformState, ctx::GTContext)
+    tnode = state.typed_node
+    expr = tnode.original[]
+
+    @assert expr.head == :if || expr.head == :elseif
+    @assert 2 <= length(expr.args) <= 3
+
+    if tnode.children[1].type != ASTBool
+        ast_error(expr, "If or elseif condition doesn't resolve to a bool value")
+    end
+
+    @assert expr.args[2] isa Expr && expr.args[2].head == :block
+    @assert length(expr.args) != 3 || (expr.args[3] isa Expr && expr.args[3].head in [:block, :elseif])
+
+    condition = GLSLTransformState(tnode.children[1])
+    glsl_transform!(condition, ctx)
+
+    body = GLSLTransformState(tnode.children[2])
+    glsl_transform!(body, ctx)
+    @assert body.glsl_node isa GLSLBlock
+
+    if length(expr.args) < 3
+        state.glsl_node = GLSLIf(condition.glsl_node, body.glsl_node)
+        return
+    end
+
+    last_branch = GLSLTransformState(tnode.children[3])
+
+    if expr.args[3].head == :elseif
+        # last_branch is an else if branch
+        glsl_transform_if!(last_branch, ctx)
+        state.glsl_node = GLSLIf(condition.glsl_node, body.glsl_node, [last_branch.glsl_node], nothing)
+    else
+        # last_branch is an else branch
+        glsl_transform!(last_branch, ctx)
+        @assert last_branch.glsl_node isa GLSLBlock
+        state.glsl_node = GLSLIf(condition.glsl_node, body.glsl_node, Vector(), last_branch.glsl_node)
+    end
+end
+
+has_nested_elseif(if_node::GLSLIf) = !isempty(if_node.elseif_branches) && !isempty(if_node.elseif_branches[end].elseif_branches)
+
+function flatten_if!(if_node::GLSLIf)
+    while has_nested_elseif(if_node)
+        nested_elseif = if_node.elseif_branches[end]
+
+        @assert length(nested_elseif.elseif_branches) == 1
+        nested_branch = nested_elseif.elseif_branches[1]
+
+        push!(if_node.elseif_branches, nested_branch)
+        nested_elseif.elseif_branches = Vector()
+    end
+
+    for elseif_branch in if_node.elseif_branches
+        if elseif_branch.condition isa GLSLBlock
+            @assert length(elseif_branch.condition.body) == 1
+            elseif_branch.condition = elseif_branch.condition.body[1]
+        end
+    end
+
+    if length(if_node.elseif_branches) == 0
+        return
+    end
+
+    last_elseif = if_node.elseif_branches[end]
+    if !isnothing(last_elseif.else_branch)
+        if_node.else_branch = last_elseif.else_branch
+        last_elseif.else_branch = nothing
+    end
+end
+
+function assert_flattened_if(if_node::GLSLIf, in_elseif=false)
+    if in_elseif
+        @assert isempty(if_node.elseif_branches)
+        @assert isnothing(if_node.else_branch)
+        @assert !(if_node.condition isa GLSLBlock)
+    else
+        for elseif_branch in if_node.elseif_branches
+            assert_flattened_if(elseif_branch)
+        end
+    end
+end
+
+function glsl_transform!(state::GLSLTransformState, ::Type{IfTag}, ctx::GTContext)
+    glsl_transform_if!(state, ctx)
+    flatten_if!(state.glsl_node)
+    assert_flattened_if(state.glsl_node)
+end
+
 function glsl_transform!(state::GLSLTransformState, ::Type{WhileTag}, ctx::GTContext)
     transform_children!(state, ctx)
 

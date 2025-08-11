@@ -150,15 +150,27 @@ j = 1
 const Vec2 = GLSLTranspiler.Vec2
 const Vec3 = GLSLTranspiler.Vec3
 const Vec4 = GLSLTranspiler.Vec4
+const IntVec3 = GLSLTranspiler.Vec3T{Int32}
 
 @glsl function test_fn()
     v2 = Vec2(1.0f0, 2.0f0)
     v3 = Vec3(1.0f0, 2.0f0, 3.0f0)
+    iv3 = IntVec3(1, 2, 3)
     v4 = Vec4(1.0f0, 2.0f0, 3.0f0, 4.0f0)
 
     i = 1
 
     global i
+
+    if i < 3
+        i += 1
+    elseif i < 4
+        i += 2
+    elseif i < 5
+        i += 3
+    else
+        i += 10
+    end
 
     j = 1
 

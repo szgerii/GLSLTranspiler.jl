@@ -1,6 +1,6 @@
 import ..GLSLTranspiler
 
-export ASTValueType
+export ASTValueType, GLM_EL_VEC_TYPES
 
 @exported abstract type ASTType end
 
@@ -14,9 +14,22 @@ export ASTValueType
 @exported struct ASTChar <: ASTType end
 @exported struct ASTString <: ASTType end
 
-@exported struct ASTVec2 <: ASTType end
-@exported struct ASTVec3 <: ASTType end
-@exported struct ASTVec4 <: ASTType end
+const GLM_EL_VEC_TYPES = [
+    ("F", Float32),
+    ("D", Float64),
+    ("I", Int32),
+    ("U", UInt32),
+    ("B", Bool)
+]
+
+vec_type_syms = []
+for n in 2:4
+    for (suffix, _) in GLM_EL_VEC_TYPES
+        sym = Symbol("ASTVec", n, suffix)
+        @eval @exported struct $sym <: ASTType end
+        push!(vec_type_syms, getfield(@__MODULE__, sym))
+    end
+end
 
 @exported struct ASTFunction <: ASTType end
 @exported struct ASTVoid <: ASTType end
@@ -26,7 +39,7 @@ Base.string(::Type{T}) where {T<:ASTType} = string(nameof(T))
 Base.show(io::IO, ::Type{T}) where {T<:ASTType} = print(io, string(nameof(T)))
 
 const tast_value_types =
-    [ASTInt32, ASTInt64, ASTUInt32, ASTUInt64, ASTFloat32, ASTFloat64, ASTBool, ASTChar, ASTString, ASTVec2, ASTVec3, ASTVec4]
+    [ASTInt32, ASTInt64, ASTUInt32, ASTUInt64, ASTFloat32, ASTFloat64, ASTBool, ASTChar, ASTString, vec_type_syms...]
 
 const ASTValueType = Union{tast_value_types...}
 
@@ -77,7 +90,16 @@ to_tast(::Type{DataType}) = ASTFunction
 @define_tast_bijection Bool ASTBool
 @define_tast_bijection Char ASTChar
 @define_tast_bijection String ASTString
-@define_tast_bijection GLSLTranspiler.Vec2T{Float32} ASTVec2
-@define_tast_bijection GLSLTranspiler.Vec3T{Float32} ASTVec3
-@define_tast_bijection GLSLTranspiler.Vec4T{Float32} ASTVec4
 @define_tast_bijection Nothing ASTVoid
+
+for n in 2:4
+    for (suffix, el_type) in GLM_EL_VEC_TYPES
+        ast_vec_sym = Symbol("Vec", n, "T")
+        tast_vec_sym = Symbol("ASTVec", n, suffix)
+        @eval @define_tast_bijection GLSLTranspiler.$ast_vec_sym{$el_type} $tast_vec_sym
+    end
+end
+
+#@define_tast_bijection GLSLTranspiler.Vec2T{Float32} ASTVec2
+#@define_tast_bijection GLSLTranspiler.Vec3T{Float32} ASTVec3
+#@define_tast_bijection GLSLTranspiler.Vec4T{Float32} ASTVec4

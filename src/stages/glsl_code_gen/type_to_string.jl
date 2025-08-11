@@ -1,8 +1,0 @@
-type_to_string(::Type{GLSLBool}) = "bool"
-type_to_string(::Type{GLSLInt}) = "int"
-type_to_string(::Type{GLSLUInt}) = "uint"
-type_to_string(::Type{GLSLFloat}) = "float"
-type_to_string(::Type{GLSLDouble}) = "double"
-type_to_string(::Type{GLSLVec2}) = "vec2"
-type_to_string(::Type{GLSLVec3}) = "vec3"
-type_to_string(::Type{GLSLVec4}) = "vec4"
