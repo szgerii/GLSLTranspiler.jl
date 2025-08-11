@@ -20,7 +20,7 @@ const SymbolResolutionStage =
         "Symbol Resolution (Scoped AST -> Scoped AST + USYMS)",
         run_sr,
         [identity, _ -> nothing, usym_list_string, usym_mappings_string],
-        [nothing, nothing, "Unique Symbols", "Symbol Mappings"]
+        ["Scoped AST with usyms", "Scope Tree", "Unique Symbols", "Symbol Mappings"]
     )
 
 end

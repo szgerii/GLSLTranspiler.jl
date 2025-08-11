@@ -1,6 +1,7 @@
 using Pkg
 Pkg.activate(@__DIR__)
 
+# include("lib/GLM/glm.jl")
 include("src/GLSLTranspiler.jl")
 
 using .GLSLTranspiler
@@ -12,7 +13,7 @@ rand_return() = rand() < 0.5 ? "asd" : 2
 bx = 2
 test_global = 3
 
-@transpile GLSLTranspiler.glsl_pipeline function test_fn(a::Int64, b::Float64)
+@skip @transpile GLSLTranspiler.glsl_pipeline function test_fn(a::Int64, b::Float64)
     am, bm, cm = 1, 2.0, "lol"
 
     a += test_global
@@ -143,5 +144,36 @@ some_other_global = 3
     acc
 end
 
+i = 0
+j = 1
+
+const Vec2 = GLSLTranspiler.Vec2
+const Vec3 = GLSLTranspiler.Vec3
+const Vec4 = GLSLTranspiler.Vec4
+
+@glsl function test_fn()
+    v2 = Vec2(1.0f0, 2.0f0)
+    v3 = Vec3(1.0f0, 2.0f0, 3.0f0)
+    v4 = Vec4(1.0f0, 2.0f0, 3.0f0, 4.0f0)
+
+    i = 1
+
+    global i
+
+    j = 1
+
+    while i < 20
+        while i < 10
+            i += 1
+        end
+
+        global i
+
+        i += 1
+        i *= 2
+    end
+end
+
 println("\nExecuting function:")
-println(test_fn(2, 3.5))
+println(test_fn())
+println(i)

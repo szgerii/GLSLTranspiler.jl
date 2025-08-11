@@ -72,6 +72,10 @@ function run_pipeline(pipeline::Pipeline, f::Expr, mod::Module)
             formatter = has_custom_formatter ? stage.output_formatters[i] : identity
             formatted = formatter(output)
 
+            if isnothing(formatted)
+                formatted = "[...] (omitted)"
+            end
+
             has_custom_name = stage isa Stage && length(stage.output_names) >= i && !isnothing(stage.output_names[i])
             name = has_custom_name ? stage.output_names[i] : "Output #$i"
 

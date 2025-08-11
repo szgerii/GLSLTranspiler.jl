@@ -13,6 +13,11 @@ include("traversal.jl")
 include("run.jl")
 
 const ScopeDiscoveryStage =
-    Stage("Scope Discovery (AST -> Scoped AST)", run_sd, output_formatters=[identity, scope_tree_string], output_names=[nothing, "Scope Tree"])
+    Stage(
+        "Scope Discovery (AST -> Scoped AST)",
+        run_sd,
+        output_formatters=[identity, scope_tree_string],
+        output_names=["Scoped AST", "Scope Tree"]
+    )
 
 end

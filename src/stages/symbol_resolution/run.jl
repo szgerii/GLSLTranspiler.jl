@@ -8,18 +8,6 @@ function run_sr(mod::Module, scoped_ast::ScopedASTNode, root_scope::Ref{Scope}):
     # collect how each symbol is used per scope
     collect_sym_usage!(ctx, scoped_ast)
 
-    for scope in sort(collect(keys(ctx.scoped_sym_usages)))
-        @debug "[Scope #$(id_chain_string(scope))]:"
-
-        for (sym, usages) in ctx.scoped_sym_usages[scope]
-            @debug "$sym =>"
-
-            for usage in usages
-                @debug "  $usage"
-            end
-        end
-    end
-
     # generate usyms and mappings based on the collected info
     gen_usyms!(ctx)
 

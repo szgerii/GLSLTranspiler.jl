@@ -14,16 +14,19 @@ end
 SRContext(defining_module::Module, root_scope::Ref{Scope}) =
     SRContext(defining_module, root_scope, ScopedSymbolUsageTable(), Dict(), ScopedUSymMapping())
 
-function reg_usym!(ctx::SRContext, sym::Symbol, scope::Ref{Scope})::UniqueSymbol
-    usym_id = get_usym_id(sym, scope)
-    usym = UniqueSymbol(usym_id, sym, scope[].id_chain)
+function reg_usym!(ctx::SRContext, sym::Symbol, scope_id::IDChain)::UniqueSymbol
+    usym_id = get_usym_id(sym, scope_id)
+    usym = UniqueSymbol(usym_id, sym, scope_id)
 
-    @assert !haskey(ctx.usyms, usym_id) "Trying to re-register a unique symbol that has already been registered"
+    @assert !haskey(ctx.usyms, usym_id) "Trying to re-register a unique symbol that has already been registered (sym: $sym, scope id: $(id_chain_string(scope_id)))"
 
     ctx.usyms[usym_id] = usym
 
     usym
 end
+
+reg_usym!(ctx::SRContext, sym::Symbol, scope::Scope) = reg_usym!(ctx, sym, scope.id_chain)
+reg_usym!(ctx::SRContext, sym::Symbol, scope::Ref{Scope}) = reg_usym!(ctx, sym, scope[])
 
 function add_mapping!(ctx::SRContext, sym::Symbol, scope::Ref{Scope}, usym::UniqueSymbol)
     id_chain = scope[].id_chain
@@ -39,9 +42,9 @@ function add_mapping!(ctx::SRContext, sym::Symbol, scope::Ref{Scope}, usym::Uniq
     ctx.usym_mappings[id_chain][sym] = usym.id
 end
 
-function find_local_in_parents(sym::Symbol, id_chain::IDChain, ctx::SRContext)::Union{UniqueSymbol,Nothing}
+function find_usym_in_parents(sym::Symbol, id_chain::IDChain, ctx::SRContext)::Union{UniqueSymbol,Nothing}
     # go upwards the scope tree, excluding the global scope
-    for i in length(id_chain):-1:2
+    for i in length(id_chain):-1:1
         id_snippet = id_chain[1:i]
 
         usym = get(ctx.usyms, get_usym_id(sym, id_snippet), nothing)
@@ -53,4 +56,4 @@ function find_local_in_parents(sym::Symbol, id_chain::IDChain, ctx::SRContext)::
     return nothing
 end
 
-find_local_in_parents(sym::Symbol, scope::Ref{Scope}, ctx::SRContext) = find_local_in_parents(sym, scope[].id_chain, ctx)
+find_usym_in_parents(sym::Symbol, scope::Ref{Scope}, ctx::SRContext) = find_usym_in_parents(sym, scope[].id_chain, ctx)

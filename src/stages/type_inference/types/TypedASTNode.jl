@@ -1,6 +1,6 @@
 import ..GLSLTranspiler
 
-mutable struct TypedASTNode <: WrapperTree
+@exported mutable struct TypedASTNode <: WrapperTree
     children::Vector{TypedASTNode}
     original::ASTNodeRef
     scope::Ref{Scope}

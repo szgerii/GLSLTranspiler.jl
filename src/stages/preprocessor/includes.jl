@@ -8,6 +8,12 @@ include("transformations.jl")
 include("traversal.jl")
 include("run.jl")
 
-const PreprocessorStage = Stage("Preprocessor (AST -> AST)", run_preprocessor)
+const PreprocessorStage =
+    Stage(
+        "Preprocessor (AST -> AST)",
+        run_preprocessor,
+        output_formatters=[identity],
+        output_names=["Preprocessed Function Definition"]
+    )
 
 end

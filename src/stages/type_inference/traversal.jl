@@ -15,9 +15,24 @@ function gen_typed_ast(node::ScopedASTNode, ::Type{ExprTag}, ctx::TIContext)::Ty
 
     typed_node = TypedASTNode(node)
 
-    for child in node.children
+    unwrap_range_indices = []
+    if node.original[].head == :for
+        push!(unwrap_range_indices, 1)
+    end
+
+    for (i, child) in enumerate(node.children)
+        toggle_unwrap = !ctx.unwrap_ranges && i in unwrap_range_indices
+
+        if toggle_unwrap
+            ctx.unwrap_ranges = true
+        end
+
         child_node = gen_typed_ast(child, ctx)
         push!(typed_node.children, child_node)
+
+        if toggle_unwrap
+            ctx.unwrap_ranges = false
+        end
     end
 
     infer_typed_ast_node!(typed_node, tag, ctx)

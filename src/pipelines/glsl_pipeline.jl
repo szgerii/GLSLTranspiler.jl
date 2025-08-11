@@ -7,6 +7,8 @@ const glsl_pipeline = Pipeline("Julia -> GLSL",
         Preprocessor.PreprocessorStage,
         ScopeDiscovery.ScopeDiscoveryStage,
         SymbolResolution.SymbolResolutionStage,
-        TypeInference.TypeInferenceStage
+        TypeInference.TypeInferenceStage,
+        GLSLTransform.GLSLTransformStage,
+        GLSLCodeGen.GLSLCodeGenStage
     ])
 )

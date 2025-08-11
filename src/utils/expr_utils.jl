@@ -1,7 +1,7 @@
 export get_param_names
 
 function get_param_names(f::Expr)::Vector{Symbol}
-    params = Vector{ASTNode}()
+    params = Vector{Symbol}()
     fdecl = f.args[1]
 
     for param_decl in fdecl.args[2:end]

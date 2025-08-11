@@ -1,8 +1,8 @@
 export IDChain, Scope, ScopeType, GLOBAL_SCOPE_ID, FUNCTION_SCOPE_ID, id_chain_string, same_scope, get_scope, get_root, in_hard_scope, is_global
 
 const IDChain = Vector{UInt8}
-const GLOBAL_SCOPE_ID = [0x1]
-const FUNCTION_SCOPE_ID = [0x1, 0x1]
+const GLOBAL_SCOPE_ID::IDChain = [0x1]
+const FUNCTION_SCOPE_ID::IDChain = [0x1, 0x1]
 
 id_chain_string(id_chain::IDChain) = join(id_chain, '.')
 function id_chain_string(id_chain::IDChain, selected_idx)

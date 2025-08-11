@@ -1,10 +1,12 @@
 using ..GLSLTranspiler: ast_error, print_traverse
 
+const TypeInferStageReturn = Tuple{TypedASTNode,Ref{Scope},Vector{TypedUniqueSymbol}}
+
 function run_type_inference(
     mod::Module, scoped_ast::ScopedASTNode,
     root_scope::Ref{Scope}, usyms::Vector{UniqueSymbol}, usym_table::ScopedUSymMapping
-)
-    ctx = TIContext(mod, root_scope, map(usym -> (usym, nothing), usyms), usym_table, Nothing)
+)::TypeInferStageReturn
+    ctx = TIContext(mod, root_scope, map(usym -> (usym, nothing), usyms), usym_table)
 
     fdecl = scoped_ast.children[1].original[]
 
@@ -71,13 +73,14 @@ function run_type_inference(
     typed_ast.children[2].type = ctx.return_type
     typed_ast.type = ctx.return_type
 
-    println("\nUSym Types:")
+    typed_usyms = []
     for (usym, type) in ctx.typed_usyms
-        println(usym.id, " => ", type)
-    end
-    println()
+        @assert !isnothing(type) "Couldn't infer type for unique symbol '$(usym.id)'"
 
-    return (typed_ast)
+        push!(typed_usyms, TypedUniqueSymbol(usym, type))
+    end
+
+    return (typed_ast, ctx.root_scope, typed_usyms)
 end
 
 function clone_subtree(root::ScopedASTNode)::TypedASTNode
@@ -92,4 +95,17 @@ function clone_subtree(root::ScopedASTNode)::TypedASTNode
     end
 
     typed_node
+end
+
+function typed_usym_list_string(usyms::Vector{TypedUniqueSymbol})::String
+    output = ""
+
+    for usym in usyms
+        output *= "$(usym.id)\n" *
+                  "  - Type: $(usym.type)\n" *
+                  "  - Original Symbol: $(usym.original_sym)\n" *
+                  "  - Defining Scope: #$(id_chain_string(usym.def_scope_id))\n"
+    end
+
+    output[1:end-1]
 end

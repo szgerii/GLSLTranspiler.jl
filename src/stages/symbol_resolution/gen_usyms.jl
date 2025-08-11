@@ -42,7 +42,7 @@ function gen_usyms!(ctx::SRContext, scope::Ref{Scope})
             end
 
             if usages[end] == SymGlobalDeclaration
-                error("Symbol '$sym' in scope $(id_chain_string(scope[].id_chain)) is last used in a global declaration expression.",
+                error("Symbol '$sym' in scope $(id_chain_string(scope[].id_chain)) is last used in a global declaration expression.\n",
                     "This isn't allowed in Julia, as every global declaration must be followed by at least one other usage of that variable.")
             end
         end
@@ -51,11 +51,15 @@ function gen_usyms!(ctx::SRContext, scope::Ref{Scope})
         if scope_source == SymGlobalDeclaration
             @assert isdefined(ctx.defining_module, sym) "Symbol '$sym' with global declaration couldn't be found in the defining module (scope #$(id_chain_string(scope[].id_chain)))"
 
-            usym = reg_usym!(ctx, sym, get_root(scope))
+            usym = get(ctx.usyms, get_usym_id(sym, GLOBAL_SCOPE_ID), nothing)
+
+            if isnothing(usym)
+                usym = reg_usym!(ctx, sym, get_root(scope))
+            end
         elseif scope_source == SymLocalDeclaration
             usym = reg_usym!(ctx, sym, scope)
         elseif scope_source == SymAssignment
-            local_usym = find_local_in_parents(sym, scope, ctx)
+            local_usym = find_usym_in_parents(sym, scope, ctx)
 
             if !isnothing(local_usym)
                 usym = local_usym
@@ -63,7 +67,7 @@ function gen_usyms!(ctx::SRContext, scope::Ref{Scope})
                 usym = reg_usym!(ctx, sym, scope)
             end
         elseif scope_source == SymAccess
-            local_usym = find_local_in_parents(sym, scope, ctx)
+            local_usym = find_usym_in_parents(sym, scope, ctx)
 
             if !isnothing(local_usym)
                 usym = local_usym
@@ -78,6 +82,7 @@ function gen_usyms!(ctx::SRContext, scope::Ref{Scope})
         @assert !isnothing(usym) "Failed to determine mapping for symbol '$sym' in scope #$(id_chain_string(scope[].id_chain))"
 
         if usym.def_scope_id == scope[].id_chain
+            println(usym)
             for usage in usages
                 if usage == SymAssignment
                     break

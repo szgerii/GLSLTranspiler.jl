@@ -4,7 +4,6 @@ struct HardTag <: ScopeDiscoveryTag end
 struct SoftTag <: ScopeDiscoveryTag end
 struct FnDefTag <: ScopeDiscoveryTag end
 
-
 @def_eqs(
     ScopeDiscoveryTag,
     (SoftTag, :for, :while, :try),
