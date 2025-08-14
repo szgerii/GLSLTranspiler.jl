@@ -196,7 +196,7 @@ const IntVec3 = GLSLTranspiler.Vec3T{Int32}
 
 const IVec2 = GLSLTranspiler.Vec2T{Int32}
 
-@transpile(
+code = @transpile(
     GLSLTranspiler.GLSL.glsl_pipeline,
     function shadertoy_demo(
         @out(frag_color::Vec4),
@@ -210,6 +210,9 @@ const IVec2 = GLSLTranspiler.Vec2T{Int32}
         frag_color = Vec4(col, 1.0f0)
     end
 )
+
+println("\nFinal transpilation output is:")
+println(code)
 
 #println("\nExecuting function:")
 #println(test_fn(1))

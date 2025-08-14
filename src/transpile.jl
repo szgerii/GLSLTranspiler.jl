@@ -5,15 +5,18 @@ export @transpile, @glsl
 macro transpile(pipeline, f::Expr)
     f = macroexpand(__module__, f, recursive=true)
     def = gensym()
+    output = gensym()
 
     quote
-        $def = GLSLTranspiler.run_pipeline($(esc(pipeline)), $(QuoteNode(f)), $__module__)
+        ($def, $output) = GLSLTranspiler.run_pipeline($(esc(pipeline)), $(QuoteNode(f)), $__module__)
 
         $__module__.eval($def)
+
+        $output
     end
 end
 
-function run_pipeline(pipeline::Pipeline, f::Expr, mod::Module)::Expr
+function run_pipeline(pipeline::Pipeline, f::Expr, mod::Module)::Tuple{Expr,Any}
     println("Running '$(pipeline.name)' pipeline...\n")
 
     Base.remove_linenums!(f)
@@ -102,5 +105,5 @@ function run_pipeline(pipeline::Pipeline, f::Expr, mod::Module)::Expr
     println("Defined Julia code:")
     print_traverse(def)
 
-    def
+    (def, stage_data[1])
 end
