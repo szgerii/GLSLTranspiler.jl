@@ -9,10 +9,11 @@ mutable struct TIContext
     usym_table::ScopedUSymMapping
     return_type::DataType
     unwrap_ranges::Bool
+    pipeline_ctx::PipelineContext
 end
 
-TIContext(defining_module::Module, root_scope::Ref{Scope}, typed_usyms, usym_table::ScopedUSymMapping) =
-    TIContext(defining_module, root_scope, typed_usyms, usym_table, Nothing, false)
+TIContext(defining_module::Module, root_scope::Ref{Scope}, typed_usyms, usym_table::ScopedUSymMapping, p_ctx::PipelineContext) =
+    TIContext(defining_module, root_scope, typed_usyms, usym_table, Nothing, false, p_ctx)
 
 find_usym_index(usym_id::Symbol, ctx::TIContext)::Union{Int,Nothing} =
     findfirst(typed_usym -> typed_usym[1].id == usym_id, ctx.typed_usyms)

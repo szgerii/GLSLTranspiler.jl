@@ -6,7 +6,7 @@ function run_type_inference(
     mod::Module, pipeline_ctx::PipelineContext, scoped_ast::ScopedASTNode,
     root_scope::Ref{Scope}, usyms::Vector{UniqueSymbol}, usym_table::ScopedUSymMapping
 )::TypeInferStageReturn
-    ctx = TIContext(mod, root_scope, map(usym -> (usym, nothing), usyms), usym_table)
+    ctx = TIContext(mod, root_scope, map(usym -> (usym, nothing), usyms), usym_table, pipeline_ctx)
 
     fdecl = scoped_ast.children[1].original[]
 

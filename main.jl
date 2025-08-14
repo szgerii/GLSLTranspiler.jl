@@ -148,7 +148,8 @@ const IntVec3 = GLSLTranspiler.Vec3T{Int32}
         frag_pos = gl_FragCoord["xy"]
         frag_pos["y"] = -frag_pos["y"] + resolution["y"]
 
-        if distance(frag_pos, mouse) < 50.0f0
+        dist = distance(frag_pos, mouse)
+        if dist < 50.0f0
             f_in = time * 2.0f0
             color = Vec4(0.5f0 * (1 + sin(f_in)), 0.2f0, 0.5f0 * (1 + cos(f_in + 3.1415f0 / 2.0f0)), 1.0f0)
         else

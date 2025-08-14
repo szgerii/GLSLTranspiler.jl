@@ -35,7 +35,7 @@ function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTCallTag}, ctx::TIC
 
     if fsym.type != ASTFunction
         arg_types = map(arg -> arg.type, args)
-        ret = env_fn_ret(Val(fsym.original[]), arg_types...)
+        ret = env_fn_ret(ctx.pipeline_ctx, Val(fsym.original[]), arg_types...)
 
         if ismissing(ret)
             ast_error(node.original[],

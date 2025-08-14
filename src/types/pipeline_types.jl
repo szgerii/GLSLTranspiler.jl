@@ -34,7 +34,8 @@ get_env_syms(_::PipelineContext) = Symbol[]
 get_env_sym_type(_::Symbol, _::PipelineContext) =
     error("Invalid pipeline context: pipeline uses environment symbols, but does not define method for get_env_sym_type(sym, ctx)")
 
-env_fn_ret(fsym::Val, arg_types...) = missing
+env_fn_ret(::Type{<:PipelineContext}, fsym::Val, arg_types...) = missing
+env_fn_ret(ctx::T, fsym::Val, arg_types...) where {T<:PipelineContext} = env_fn_ret(T, fsym, arg_types...)
 
 get_def_transform(_::PipelineContext) = (_, _) -> nothing
 
