@@ -1,4 +1,4 @@
-export Stage, Pipeline, PipelineContext, init_pipeline_ctx, get_env_syms, get_env_sym_type
+export Stage, Pipeline, PipelineContext, init_pipeline_ctx, get_env_syms, get_env_sym_type, get_def_transform
 
 struct Stage
     name::String
@@ -33,6 +33,8 @@ end
 get_env_syms(_::PipelineContext) = Symbol[]
 get_env_sym_type(_::Symbol, _::PipelineContext) =
     error("Invalid pipeline context: pipeline uses environment symbols, but does not define method for get_env_sym_type(sym, ctx)")
+
+get_def_transform(_::PipelineContext) = (_, _) -> nothing
 
 struct Pipeline
     name::String

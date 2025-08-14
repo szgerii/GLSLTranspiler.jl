@@ -33,10 +33,11 @@ function run_pipeline(pipeline::Pipeline, f::Expr, mod::Module)::Expr
 
     pipeline_ctx = init_pipeline_ctx(pipeline.ctx_type)
     def = nothing
-
+    def_transform! = get_def_transform(pipeline_ctx)
     for stage in pipeline.stages
         if isnothing(def) && stage isa Stage && !stage.run_before_definition
             def = deepcopy(stage_data[1])
+            def_transform!(def, pipeline_ctx)
         end
 
         stage_name = string(stage)
@@ -92,10 +93,14 @@ function run_pipeline(pipeline::Pipeline, f::Expr, mod::Module)::Expr
     end
 
     if isnothing(def)
-        def = stage_data[1]
+        def = deepcopy(stage_data[1])
+        def_transform!(def, pipeline_ctx)
     end
 
-    println("Finished pipeline '$(pipeline.name)'")
+    println("Finished pipeline '$(pipeline.name)'\n")
+
+    println("Defined Julia code:")
+    print_traverse(def)
 
     def
 end
