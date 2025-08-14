@@ -30,7 +30,7 @@ const gl_vars = [
     (:gl_FragCoord, GLSLTranspiler.Vec4)
 ]
 
-BaseTypes.init_pipeline_ctx(::Type{GLSLPipelineContext}) = GLSLPipelineContext(missing, gl_vars, remove_env_sym_decls!)
+BaseTypes.init_pipeline_ctx(::Type{GLSLPipelineContext}) = GLSLPipelineContext(missing, deepcopy(gl_vars), remove_env_sym_decls!)
 
 BaseTypes.get_def_transform(ctx::GLSLPipelineContext) = ctx.def_transform
 

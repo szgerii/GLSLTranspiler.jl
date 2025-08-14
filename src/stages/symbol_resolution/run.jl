@@ -11,8 +11,6 @@ function run_sr(mod::Module, pipeline_ctx::PipelineContext, scoped_ast::ScopedAS
         add_mapping!(ctx, env_sym, FUNCTION_SCOPE_ID, usym)
     end
 
-    println(usym_list_string(collect(values(ctx.usyms))))
-
     # collect how each symbol is used per scope
     collect_sym_usage!(ctx, scoped_ast)
 

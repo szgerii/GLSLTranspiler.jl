@@ -102,8 +102,5 @@ function run_pipeline(pipeline::Pipeline, f::Expr, mod::Module)::Tuple{Expr,Any}
 
     println("Finished pipeline '$(pipeline.name)'\n")
 
-    println("Defined Julia code:")
-    print_traverse(def)
-
     (def, stage_data[1])
 end
