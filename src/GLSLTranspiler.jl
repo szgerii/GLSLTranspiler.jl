@@ -1,11 +1,9 @@
 module GLSLTranspiler
+__precompile__()
 
 using Tagger
 
-# GL and GLM helpers
-# mainly needed for adding support to the types
 include("../lib/GLM/glm.jl")
-# include("../lib/GL/gl.jl")
 
 # Base Types
 include("types/includes.jl")
@@ -38,5 +36,23 @@ include("pipelines/glsl/includes.jl")
 
 # Public API stuff for transpilation
 include("transpile.jl")
+
+using PrecompileTools: @setup_workload, @compile_workload
+
+# TODO profile for weak spots
+# Precompile
+@compile_workload begin
+    @transpile GLSL.glsl_pipeline function shadertoy_demo(
+        GLSL.@out(frag_color::Vec4),
+        GLSL.@uniform(time::Float32),
+        GLSL.@uniform(resolution::IVec2)
+    )
+        uv = gl_FragCoord["xy"] ./ resolution
+
+        col = 0.5f0 .+ 0.5f0 .* cos.(time .+ uv["xyx"] + Vec3(0, 2, 4))
+
+        frag_color = Vec4(col, 1.0f0)
+    end
+end
 
 end

@@ -1,14 +1,12 @@
-using Logging
-
 export @transpile, @glsl
 
-macro transpile(pipeline, f::Expr)
+macro transpile(pipeline, f::Expr, verbose=false)
     f = macroexpand(__module__, f, recursive=true)
     def = gensym()
     output = gensym()
 
     quote
-        ($def, $output) = GLSLTranspiler.run_pipeline($(esc(pipeline)), $(QuoteNode(f)), $__module__)
+        ($def, $output) = GLSLTranspiler.run_pipeline($(esc(pipeline)), $(QuoteNode(f)), $__module__; verbose=$(esc(verbose)))
 
         $__module__.eval($def)
 
@@ -16,18 +14,20 @@ macro transpile(pipeline, f::Expr)
     end
 end
 
-function run_pipeline(pipeline::Pipeline, f::Expr, mod::Module)::Tuple{Expr,Any}
-    println("Running '$(pipeline.name)' pipeline...\n")
-
+function run_pipeline(pipeline::Pipeline, f::Expr, mod::Module; verbose::Bool=false)::Tuple{Expr,Any}
     Base.remove_linenums!(f)
 
-    println("Original function definition:")
-    println(f)
-    println()
+    if verbose
+        println("Running '$(pipeline.name)' pipeline...\n")
 
-    println("Original AST:")
-    print_traverse(f)
-    println()
+        println("Original function definition:")
+        println(f)
+        println()
+
+        println("Original AST:")
+        print_traverse(f)
+        println()
+    end
 
     # the data that is passed between stages
     # it is a tuple whose first element is some intermediate tree representation
@@ -56,14 +56,14 @@ function run_pipeline(pipeline::Pipeline, f::Expr, mod::Module)::Tuple{Expr,Any}
         stage_fn = stage isa Stage ? stage.run : stage
         print_ctx = stage isa Stage && stage.print_ctx
 
-        println("Running '$stage_name' stage...")
+        verbose && println("Running '$stage_name' stage...")
         stage_data = stage_fn(mod, pipeline_ctx, stage_data...)
 
         if !(stage_data isa Tuple)
             stage_data = (stage_data,)
         end
 
-        println("\nFinished '$stage_name' stage, output:")
+        verbose && println("\nFinished '$stage_name' stage, output:")
         for (i, output) in enumerate(stage_data)
             has_custom_formatter = stage isa Stage && length(stage.output_formatters) >= i
             formatter = has_custom_formatter ? stage.output_formatters[i] : identity
@@ -76,16 +76,18 @@ function run_pipeline(pipeline::Pipeline, f::Expr, mod::Module)::Tuple{Expr,Any}
             has_custom_name = stage isa Stage && length(stage.output_names) >= i && !isnothing(stage.output_names[i])
             name = has_custom_name ? stage.output_names[i] : "Output #$i"
 
-            println("\n<$name>:")
-            if output isa AbstractTree
-                print_traverse(formatted)
-            elseif !isnothing(formatted)
-                println(formatted)
+            if verbose
+                println("\n<$name>:")
+                if output isa AbstractTree
+                    print_traverse(formatted)
+                elseif !isnothing(formatted)
+                    println(formatted)
+                end
             end
         end
-        println()
+        verbose && println()
 
-        if print_ctx
+        if verbose && print_ctx
             println("<Pipeline Context>:\n")
             for field_name in fieldnames(typeof(pipeline_ctx))
                 println("[$field_name]:")
@@ -100,7 +102,7 @@ function run_pipeline(pipeline::Pipeline, f::Expr, mod::Module)::Tuple{Expr,Any}
         def_transform!(def, pipeline_ctx)
     end
 
-    println("Finished pipeline '$(pipeline.name)'\n")
+    verbose && println("Finished pipeline '$(pipeline.name)'\n")
 
     (def, stage_data[1])
 end
