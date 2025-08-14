@@ -5,6 +5,7 @@ struct StringCallPreTag <: PreTag end
 struct ComparisonChainPreTag <: PreTag end
 struct MultipleAssignmentPreTag <: PreTag end
 struct MultipleTargetDeclPreTag <: PreTag end
+struct BroadcastCallPreTag <: PreTag end
 
 @def_eqs(
     PreTag,
@@ -34,5 +35,17 @@ struct MultipleTargetDeclPreTag <: PreTag end
     (
         MultipleTargetDeclPreTag,
         ex -> ex.head in [:global, :local] && length(ex.args) >= 2
+    ),
+    (
+        BroadcastCallPreTag,
+        ex -> begin
+            args_match = ex.head == :(.) && length(ex.args) == 2
+
+            if !args_match
+                return false
+            end
+
+            ex.args[1] isa Symbol && ex.args[2] isa Expr && ex.args[2].head == :tuple
+        end
     )
 )

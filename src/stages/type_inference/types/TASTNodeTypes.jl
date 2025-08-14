@@ -1,6 +1,6 @@
 import ..GLSLTranspiler
 
-export ASTValueType, GLM_EL_VEC_TYPES
+export ASTValueType, GLM_EL_VEC_TYPES, elcount, get_ast_vec_type
 
 @exported abstract type ASTType end
 
@@ -14,6 +14,11 @@ export ASTValueType, GLM_EL_VEC_TYPES
 @exported struct ASTChar <: ASTType end
 @exported struct ASTString <: ASTType end
 
+@exported abstract type ASTVec <: ASTType end
+
+elcount(::Type{T}) where {T<:ASTVec} =
+    error("Invalid AST vector type: $T\n", "No elcount method exists for AST vector subtype.")
+
 const GLM_EL_VEC_TYPES = [
     ("F", Float32),
     ("D", Float64),
@@ -22,12 +27,25 @@ const GLM_EL_VEC_TYPES = [
     ("B", Bool)
 ]
 
+get_ast_vec_type(::Type{T}, n::Int) where T = get_ast_vec_type(T, Val(n))
+
 vec_type_syms = []
 for n in 2:4
-    for (suffix, _) in GLM_EL_VEC_TYPES
+    for (suffix, el_type) in GLM_EL_VEC_TYPES
         sym = Symbol("ASTVec", n, suffix)
-        @eval @exported struct $sym <: ASTType end
-        push!(vec_type_syms, getfield(@__MODULE__, sym))
+        @eval @exported struct $sym <: ASTVec end
+        @eval Base.eltype(::Type{$sym}) = $el_type
+        @eval elcount(::Type{$sym}) = $n
+        @eval get_ast_vec_type(::Type{$el_type}, _::Val{$n}) = $sym
+
+        @assert isdefined(@__MODULE__, sym)
+
+        vec_type = getfield(@__MODULE__, sym)
+        @assert vec_type <: ASTVec
+        @assert eltype(vec_type) == el_type
+        @assert elcount(vec_type) == n
+
+        push!(vec_type_syms, vec_type)
     end
 end
 

@@ -7,25 +7,29 @@ macro exported(def::Expr)
 
     if def.head == :abstract
         name = def.args[1]
+
+        if name isa Expr && name.head == :(<:)
+            name = name.args[1]
+        end
     elseif def.args[2] isa Symbol
         name = def.args[2]
     else
-        name_def = def.args[2]
+        name = def.args[2]
 
         # unwrap inheritance
-        if name_def isa Expr && name_def.head == :(<:)
-            name_def = name_def.args[1]
+        if name isa Expr && name.head == :(<:)
+            name = name.args[1]
         end
 
         # unwrap type parameters
-        if name_def isa Expr && name_def.head == :curly
-            name_def = name_def.args[1]
+        if name isa Expr && name.head == :curly
+            name = name.args[1]
         end
 
-        name = name_def
+        name = name
     end
 
-    @assert name isa Symbol
+    @assert name isa Symbol "The resolved name is not a Symbol (name = $name)"
 
     quote
         export $name

@@ -15,9 +15,9 @@ include("run.jl")
 const ScopeDiscoveryStage =
     Stage(
         "Scope Discovery (AST -> Scoped AST)",
-        run_sd,
-        output_formatters=[identity, scope_tree_string],
-        output_names=["Scoped AST", "Scope Tree"]
+        run_sd;
+        output_names=["Scoped AST", "Scope Tree"],
+        output_formatters=[identity, scope_tree_string]
     )
 
 end

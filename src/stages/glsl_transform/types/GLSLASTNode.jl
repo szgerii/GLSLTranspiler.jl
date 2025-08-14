@@ -1,16 +1,19 @@
-export GLSLASTNode, GLSLComment, GLSLEmptyNode, GLSLLiteral, GLSLSymbol, GLSLTypeSymbol, GLSLBlock, GLSLDeclaration,
-    GLSLAssignment, GLSLCall, GLSLReturn, GLSLIf, GLSLFor, GLSLWhile
+@exported abstract type GLSLASTNode end
 
-abstract type GLSLASTNode end
+@exported struct GLSLEmptyNode <: GLSLASTNode end
 
-struct GLSLEmptyNode <: GLSLASTNode end
+@exported struct GLSLNewLine <: GLSLASTNode
+    num_of_lines::Int
+end
 
-struct GLSLComment <: GLSLASTNode
+GLSLNewLine() = GLSLNewLine(1)
+
+@exported struct GLSLComment <: GLSLASTNode
     content::String
     multiline::Bool
 end
 
-struct GLSLLiteral <: GLSLASTNode
+@exported struct GLSLLiteral <: GLSLASTNode
     value::ASTLiteral
     type::DataType
 
@@ -19,46 +22,61 @@ end
 
 GLSLLiteral(value::ASTLiteral) = GLSLLiteral(value, to_glsl_type(TypeInference.to_tast(typeof(value))))
 
-abstract type AbstractGLSLSymbol <: GLSLASTNode end
+@exported abstract type AbstractGLSLSymbol <: GLSLASTNode end
 
-struct GLSLSymbol <: AbstractGLSLSymbol
+@exported struct GLSLSymbol <: AbstractGLSLSymbol
     sym::Symbol
 end
 
-struct GLSLTypeSymbol <: AbstractGLSLSymbol
+@exported struct GLSLTypeSymbol <: AbstractGLSLSymbol
     type::DataType
 
     GLSLTypeSymbol(::Type{T}) where {T<:GLSLType} = new(T)
 end
 
-struct GLSLBlock <: GLSLASTNode
+@exported struct GLSLBlock <: GLSLASTNode
     body::Vector{GLSLASTNode}
 end
 
-struct GLSLDeclaration <: GLSLASTNode
+export GLSLStorageQualifier, SQ_In, SQ_None, SQ_Out, SQ_Uniform
+@enum GLSLStorageQualifier SQ_None SQ_In SQ_Out SQ_Uniform
+
+to_storage_qualifier(sym::Symbol) = to_storage_qualifier(Val(sym))
+to_storage_qualifier(::Val{:in}) = SQ_In
+to_storage_qualifier(::Val{:out}) = SQ_Out
+to_storage_qualifier(::Val{:uniform}) = SQ_Uniform
+
+@exported struct GLSLDeclaration <: GLSLASTNode
     symbol::GLSLSymbol
     type::DataType
+    storage_qualifier::GLSLStorageQualifier
 
-    GLSLDeclaration(sym::GLSLSymbol, ::Type{T}) where {T<:GLSLType} = new(sym, T)
+    GLSLDeclaration(sym::GLSLSymbol, ::Type{T}, qualifier::GLSLStorageQualifier=SQ_None) where {T<:GLSLType} =
+        new(sym, T, qualifier)
 end
 
-struct GLSLAssignment <: GLSLASTNode
+@exported struct GLSLShader <: GLSLASTNode
+    interface_declarations::Vector{GLSLDeclaration}
+    body::GLSLBlock
+end
+
+@exported struct GLSLAssignment <: GLSLASTNode
     lhs::GLSLSymbol
     rhs::GLSLASTNode
 end
 
-struct GLSLCall <: GLSLASTNode
+@exported struct GLSLCall <: GLSLASTNode
     fn_name::Union{GLSLSymbol,GLSLTypeSymbol}
     args::Vector{GLSLASTNode}
 end
 
 GLSLCall(fn_name::Union{GLSLSymbol,GLSLTypeSymbol}, args::Vararg{GLSLASTNode}) = GLSLCall(fn_name, [args...])
 
-struct GLSLReturn <: GLSLASTNode
+@exported struct GLSLReturn <: GLSLASTNode
     body::Union{GLSLASTNode,Nothing}
 end
 
-mutable struct GLSLIf <: GLSLASTNode
+@exported mutable struct GLSLIf <: GLSLASTNode
     condition::GLSLASTNode
     body::GLSLBlock
     elseif_branches::Vector{GLSLIf}
@@ -70,14 +88,19 @@ GLSLIf(condition::GLSLASTNode, body::GLSLBlock) =
 GLSLIf(condition::GLSLASTNode, body::GLSLBlock, else_branch::GLSLBlock) =
     GLSLIf(condition, body, Vector(), else_branch)
 
-struct GLSLFor <: GLSLASTNode
+@exported struct GLSLFor <: GLSLASTNode
     definitions::Vector{GLSLASTNode}
     condition::GLSLASTNode
     step::GLSLASTNode
     body::GLSLBlock
 end
 
-struct GLSLWhile <: GLSLASTNode
+@exported struct GLSLWhile <: GLSLASTNode
     condition::GLSLASTNode
     body::GLSLBlock
+end
+
+@exported struct GLSLSwizzle <: GLSLASTNode
+    base::GLSLASTNode
+    swizzle::String
 end

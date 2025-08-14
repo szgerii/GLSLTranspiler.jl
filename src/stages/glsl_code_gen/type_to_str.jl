@@ -1,4 +1,4 @@
-import ..GLSLTranspiler.TypeInference
+import ....GLSLTranspiler.TypeInference
 
 type_to_str(::Type{GLSLBool}) = "bool"
 type_to_str(::Type{GLSLInt}) = "int"

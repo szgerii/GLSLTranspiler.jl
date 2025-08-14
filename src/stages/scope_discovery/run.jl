@@ -1,5 +1,5 @@
 # AST -> Scoped AST + scope tree
-function run_sd(mod::Module, f::Expr)
+function run_sd(mod::Module, _::PipelineContext, f::Expr)
     # create context for SAST construction  
     ctx = SDContext(mod)
 

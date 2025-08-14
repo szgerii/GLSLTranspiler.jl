@@ -5,6 +5,7 @@ Pkg.activate(@__DIR__)
 include("src/GLSLTranspiler.jl")
 
 using .GLSLTranspiler
+using .GLSLTranspiler.GLSL
 
 plus_one(a) = a + 1
 
@@ -13,7 +14,7 @@ rand_return() = rand() < 0.5 ? "asd" : 2
 bx = 2
 test_global = 3
 
-@skip @transpile GLSLTranspiler.glsl_pipeline function test_fn(a::Int64, b::Float64)
+@skip @transpile GLSLTranspiler.GLSL.glsl_pipeline function test_fn(a::Int64, b::Float64)
     am, bm, cm = 1, 2.0, "lol"
 
     a += test_global
@@ -92,7 +93,7 @@ some_global = 2
 some_other_global = 3
 
 #@transpile GLSLTranspiler.glsl_pipeline function test_fn(a, b::Float64)
-@skip @glsl function test_fn(a::Int, b::Int)
+@skip @transpile GLSLTranspiler.GLSL.glsl_pipeline function test_fn(a::Int, b::Int)
     # global 1
     some_global = 2
     # local 1.1 because of assignment
@@ -100,7 +101,7 @@ some_other_global = 3
 
     # global 1
     global some_global
-    println(some_global)
+    some_global
 
     # local 1.1
     acc = 0
@@ -137,7 +138,7 @@ some_other_global = 3
 
         # local 1.1
         # j == 4 here
-        println(j)
+        j
     end
 
     # local 1.1
@@ -152,40 +153,77 @@ const Vec3 = GLSLTranspiler.Vec3
 const Vec4 = GLSLTranspiler.Vec4
 const IntVec3 = GLSLTranspiler.Vec3T{Int32}
 
-@glsl function test_fn()
-    v2 = Vec2(1.0f0, 2.0f0)
-    v3 = Vec3(1.0f0, 2.0f0, 3.0f0)
-    iv3 = IntVec3(1, 2, 3)
-    v4 = Vec4(1.0f0, 2.0f0, 3.0f0, 4.0f0)
+@skip @transpile(
+    GLSLTranspiler.GLSL.glsl_pipeline,
+    function test_fn(@in(a::Int), @out(b::Float32), @uniform(c::IntVec3))
+        v2, v3 = Vec2(1.0f0, 2.0f0), Vec3(1.0f0, 2.0f0, 3.0f0)
+        iv3 = IntVec3(a, 2, 3)
+        v4 = Vec4(1.0f0, 2.0f0, 3.0f0, 4.0f0)
 
-    i = 1
+        v2 = cos.(v2)
 
-    global i
-
-    if i < 3
-        i += 1
-    elseif i < 4
-        i += 2
-    elseif i < 5
-        i += 3
-    else
-        i += 10
-    end
-
-    j = 1
-
-    while i < 20
-        while i < 10
-            i += 1
-        end
+        i = 1
 
         global i
 
-        i += 1
-        i *= 2
-    end
-end
+        if i < 3
+            i += 1
+        elseif i < 4
+            i += 2
+        elseif i < 5
+            i += 3
+        else
+            i += 10
+        end
 
-println("\nExecuting function:")
-println(test_fn())
-println(i)
+        j = 1
+
+        while i < 20
+            sub = 2.0f0
+            sub2 = 2.0
+
+            while i < 10
+                i += 1
+            end
+
+            global i
+
+            i += 1
+            i *= 2
+        end
+    end
+)
+
+const IVec2 = GLSLTranspiler.Vec2T{Int32}
+
+@transpile(
+    GLSLTranspiler.GLSL.glsl_pipeline,
+    function shadertoy_demo(
+        @in(frag_coord::Vec2),
+        @out(frag_color::Vec4),
+        @uniform(time::Float32),
+        @uniform(res::IVec2)
+    )
+        v2 = Vec2(1, 2)
+        v4 = v2["xyxx"]
+        #=
+        // Normalized pixel coordinates (from 0 to 1)
+        vec2 uv = fragCoord/iResolution.xy;
+
+        // Time varying pixel color
+        vec3 col = 0.5 + 0.5*cos(iTime+uv.xyx+vec3(0,2,4));
+
+        // Output to screen
+        fragColor = vec4(col,1.0);
+        =#
+        #gl_FragCoord = Vec4(0, 0, 0, 1)
+        #
+        #fc_xy = gl_FragCoord
+        #
+        #uv = gl_FragCoord / res
+    end
+)
+
+#println("\nExecuting function:")
+#println(test_fn(1))
+#println(i)

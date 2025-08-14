@@ -82,7 +82,6 @@ function gen_usyms!(ctx::SRContext, scope::Ref{Scope})
         @assert !isnothing(usym) "Failed to determine mapping for symbol '$sym' in scope #$(id_chain_string(scope[].id_chain))"
 
         if usym.def_scope_id == scope[].id_chain
-            println(usym)
             for usage in usages
                 if usage == SymAssignment
                     break

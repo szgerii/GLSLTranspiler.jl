@@ -2,7 +2,7 @@ using Logging
 
 const SymResStageReturn = Tuple{ScopedASTNode,Ref{Scope},Vector{UniqueSymbol},ScopedUSymMapping}
 
-function run_sr(mod::Module, scoped_ast::ScopedASTNode, root_scope::Ref{Scope})::SymResStageReturn
+function run_sr(mod::Module, _::PipelineContext, scoped_ast::ScopedASTNode, root_scope::Ref{Scope})::SymResStageReturn
     ctx = SRContext(mod, root_scope)
 
     # collect how each symbol is used per scope

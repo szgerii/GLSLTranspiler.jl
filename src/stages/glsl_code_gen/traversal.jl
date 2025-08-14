@@ -17,6 +17,8 @@ end
 glsl_cg_traverse(node::GLSLSymbol, _::GLSLCodeGenContext) = string(node.sym)
 glsl_cg_traverse(node::GLSLTypeSymbol, _::GLSLCodeGenContext) = type_to_str(node.type)
 
+glsl_cg_traverse(node::GLSLNewLine, _::GLSLCodeGenContext) = repeat('\n', node.num_of_lines)
+
 function glsl_cg_traverse(node::GLSLComment, ctx::GLSLCodeGenContext)
     if node.multiline
         padding = repeat(" ", ctx.indent_level + 4)
@@ -42,16 +44,16 @@ function glsl_cg_traverse(node::GLSLBlock, ctx::GLSLCodeGenContext)
 
         expr_code = glsl_cg_traverse(expr, ctx)
 
-        if !(expr isa GLSLBlock)
+        if !(expr isa GLSLBlock) && !(expr isa GLSLNewLine)
             expr_code = padding * expr_code
             expr_code = replace(expr_code, r"\n(?! )" => "\n" * padding)
         end
 
-        if !(expr isa GLSLComment) && expr_code[end] != '}'
+        if !(expr isa GLSLComment || expr isa GLSLNewLine) && expr_code[end] != '}'
             expr_code *= ";"
         end
 
-        code *= expr_code * "\n"
+        code *= expr_code * (expr isa GLSLNewLine ? "" : "\n")
     end
 
     ctx.indent_level -= 4
@@ -59,7 +61,15 @@ function glsl_cg_traverse(node::GLSLBlock, ctx::GLSLCodeGenContext)
     code
 end
 
-glsl_cg_traverse(node::GLSLDeclaration, ctx::GLSLCodeGenContext) = type_to_str(node.type) * " " * glsl_cg_traverse(node.symbol, ctx)
+function glsl_cg_traverse(node::GLSLDeclaration, ctx::GLSLCodeGenContext)
+    qualifier = qualifier_to_str(node.storage_qualifier)
+
+    if !isempty(qualifier)
+        qualifier *= " "
+    end
+
+    qualifier * type_to_str(node.type) * " " * glsl_cg_traverse(node.symbol, ctx)
+end
 
 glsl_cg_traverse(node::GLSLAssignment, ctx::GLSLCodeGenContext) = "$(glsl_cg_traverse(node.lhs, ctx)) = $(glsl_cg_traverse(node.rhs, ctx))"
 
@@ -114,4 +124,8 @@ function glsl_cg_traverse(node::GLSLWhile, ctx::GLSLCodeGenContext)
     code *= "}"
 
     code
+end
+
+function glsl_cg_traverse(node::GLSLSwizzle, ctx::GLSLCodeGenContext)
+    glsl_cg_traverse(node.base, ctx) * "." * node.swizzle
 end

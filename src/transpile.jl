@@ -3,32 +3,17 @@ using Logging
 export @transpile, @glsl
 
 macro transpile(pipeline, f::Expr)
-    # save the original function definition AST so that it can be modified by the transpiler
-    # without it having an effect on the Julia function itself
-    original_f = deepcopy(f)
+    f = macroexpand(__module__, f, recursive=true)
+    def = gensym()
 
     quote
-        with_logger(PipelineLogger(Logging.Debug)) do
-            GLSLTranspiler.run_pipeline($(esc(pipeline)), $(QuoteNode(f)), $__module__)
-        end
+        $def = GLSLTranspiler.run_pipeline($(esc(pipeline)), $(QuoteNode(f)), $__module__)
 
-        $(esc(original_f))
+        $__module__.eval($def)
     end
 end
 
-macro glsl(f::Expr)
-    original_f = deepcopy(f)
-
-    quote
-        with_logger(PipelineLogger(Logging.Debug)) do
-            GLSLTranspiler.run_pipeline(glsl_pipeline, $(QuoteNode(f)), $__module__)
-        end
-
-        $(esc(original_f))
-    end
-end
-
-function run_pipeline(pipeline::Pipeline, f::Expr, mod::Module)
+function run_pipeline(pipeline::Pipeline, f::Expr, mod::Module)::Expr
     println("Running '$(pipeline.name)' pipeline...\n")
 
     Base.remove_linenums!(f)
@@ -46,7 +31,14 @@ function run_pipeline(pipeline::Pipeline, f::Expr, mod::Module)
     # and the rest of the elements can be any satellite data
     stage_data = (f,)
 
+    pipeline_ctx = init_pipeline_ctx(pipeline.ctx_type)
+    def = nothing
+
     for stage in pipeline.stages
+        if isnothing(def) && stage isa Stage && !stage.run_before_definition
+            def = deepcopy(stage_data[1])
+        end
+
         stage_name = string(stage)
 
         if stage isa Function
@@ -58,9 +50,10 @@ function run_pipeline(pipeline::Pipeline, f::Expr, mod::Module)
         end
 
         stage_fn = stage isa Stage ? stage.run : stage
+        print_ctx = stage isa Stage && stage.print_ctx
 
         println("Running '$stage_name' stage...")
-        stage_data = stage_fn(mod, stage_data...)
+        stage_data = stage_fn(mod, pipeline_ctx, stage_data...)
 
         if !(stage_data isa Tuple)
             stage_data = (stage_data,)
@@ -87,7 +80,22 @@ function run_pipeline(pipeline::Pipeline, f::Expr, mod::Module)
             end
         end
         println()
+
+        if print_ctx
+            println("<Pipeline Context>:\n")
+            for field_name in fieldnames(typeof(pipeline_ctx))
+                println("[$field_name]:")
+                println(string(getfield(pipeline_ctx, field_name)))
+            end
+            println()
+        end
+    end
+
+    if isnothing(def)
+        def = stage_data[1]
     end
 
     println("Finished pipeline '$(pipeline.name)'")
+
+    def
 end

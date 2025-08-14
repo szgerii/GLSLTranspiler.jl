@@ -11,9 +11,9 @@ include("run.jl")
 const PreprocessorStage =
     Stage(
         "Preprocessor (AST -> AST)",
-        run_preprocessor,
-        output_formatters=[identity],
-        output_names=["Preprocessed Function Definition"]
+        run_preprocessor;
+        output_names=["Preprocessed Function Definition"],
+        output_formatters=[identity]
     )
 
 end

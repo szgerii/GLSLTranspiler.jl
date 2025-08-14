@@ -1,5 +1,7 @@
+import ...SymbolResolution: USYM_INFIX
+
 function run_glsl_transform(
-    mod::Module, typed_ast::TypedASTNode, root_scope::Ref{Scope}, usyms::Vector{TypedUniqueSymbol}
+    mod::Module, pipeline_ctx::GLSLPipelineContext, typed_ast::TypedASTNode, root_scope::Ref{Scope}, usyms::Vector{TypedUniqueSymbol}
 )
     ctx = GTContext(mod)
 
@@ -9,25 +11,48 @@ function run_glsl_transform(
 
     @assert glsl_ast isa GLSLBlock
 
-    params = get_param_names(typed_ast.original[])
+    pushfirst!(glsl_ast.body, GLSLNewLine())
+    pushfirst!(glsl_ast.body, GLSLComment("BODY", false))
+    pushfirst!(glsl_ast.body, GLSLNewLine())
 
-    pushfirst!(glsl_ast.body, GLSLComment("BODY", true))
+    params = get_param_names(typed_ast.original[])
+    in_syms = map(var -> var[1], pipeline_ctx.shader_ctx.in_vars)
+    out_syms = map(var -> var[1], pipeline_ctx.shader_ctx.out_vars)
+    uniform_syms = map(var -> var[1], pipeline_ctx.shader_ctx.uniform_vars)
+
+    interface_decls = GLSLDeclaration[]
 
     for usym in usyms
         is_param = usym.original_sym in params && usym.def_scope_id == FUNCTION_SCOPE_ID
         in_global = usym.def_scope_id == GLOBAL_SCOPE_ID
 
-        if usym.type == ASTFunction || is_param || in_global
+        if usym.type == ASTFunction || in_global
             continue
         end
 
         sym = GLSLSymbol(usym.id)
-        pushfirst!(glsl_ast.body, GLSLDeclaration(sym, to_glsl_type(usym.type)))
+        if is_param
+            original_sym = split(string(usym.id), USYM_INFIX)[1] |> Symbol
+            sq = (original_sym in in_syms ? SQ_In :
+                  (original_sym in out_syms ? SQ_Out :
+                   original_sym in uniform_syms ? SQ_Uniform : nothing))
+
+            @assert !isnothing(sq)
+
+            push!(interface_decls, GLSLDeclaration(sym, to_glsl_type(usym.type), sq))
+        else
+            pushfirst!(glsl_ast.body, GLSLDeclaration(sym, to_glsl_type(usym.type)))
+        end
+
     end
 
-    pushfirst!(glsl_ast.body, GLSLComment("DECLARATIONS", true))
+    pushfirst!(glsl_ast.body, GLSLNewLine())
+    pushfirst!(glsl_ast.body, GLSLComment("USYM DECLARATIONS", false))
+    pushfirst!(glsl_ast.body, GLSLNewLine())
 
-    (glsl_ast)
+    shader = GLSLShader(interface_decls, glsl_ast)
+
+    (shader)
 end
 
 glsl_ast_string(misc::Any, indent=0) = repeat(' ', indent) * string(misc) * "\n"

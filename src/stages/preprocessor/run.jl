@@ -1,7 +1,9 @@
 # AST -> AST
-function run_preprocessor(mod::Module, f::Expr)::Expr
+function run_preprocessor(mod::Module, _::PipelineContext, ast::Expr)::Expr
     # run preprocessor only on fn body
-    f.args[2] = preprocess_traverse(f.args[2], mod)
+    result = preprocess_traverse(ast.args[2], mod)
+    @assert length(result) == 1
+    ast.args[2] = result[1]
 
-    f
+    ast
 end

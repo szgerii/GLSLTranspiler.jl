@@ -3,7 +3,7 @@ using ..GLSLTranspiler: ast_error, print_traverse
 const TypeInferStageReturn = Tuple{TypedASTNode,Ref{Scope},Vector{TypedUniqueSymbol}}
 
 function run_type_inference(
-    mod::Module, scoped_ast::ScopedASTNode,
+    mod::Module, _::PipelineContext, scoped_ast::ScopedASTNode,
     root_scope::Ref{Scope}, usyms::Vector{UniqueSymbol}, usym_table::ScopedUSymMapping
 )::TypeInferStageReturn
     ctx = TIContext(mod, root_scope, map(usym -> (usym, nothing), usyms), usym_table)
@@ -54,20 +54,22 @@ function run_type_inference(
     # transform fn body sub-tree from scoped ast into typed ast
     push!(typed_ast.children, gen_typed_ast(scoped_ast.children[2], ctx))
 
-    last_expr = typed_ast.children[2].children[end]
+    if !isempty(typed_ast.children[2].children)
+        last_expr = typed_ast.children[2].children[end]
 
-    if ctx.return_type != Nothing
-        if last_expr.type != ctx.return_type
-            ast_error(last_expr.original[],
-                "Invalid last statement in function: last statement's type ($(last_expr.type)) doesn't match the function's previously inferred return type ($rtype)")
-        end
-    else
-        if !(last_expr.type <: ASTValueType || last_expr.type == ASTVoid)
-            ast_error(last_expr.original[],
-                "Invalid last statement in function: the function's return type cannot be what is being inferred from the last statement ($(last_expr.type))")
-        end
+        if ctx.return_type != Nothing
+            if last_expr.type != ctx.return_type
+                ast_error(last_expr.original[],
+                    "Invalid last statement in function: last statement's type ($(last_expr.type)) doesn't match the function's previously inferred return type ($rtype)")
+            end
+        else
+            if !(last_expr.type <: ASTValueType || last_expr.type == ASTVoid)
+                ast_error(last_expr.original[],
+                    "Invalid last statement in function: the function's return type cannot be what is being inferred from the last statement ($(last_expr.type))")
+            end
 
-        ctx.return_type = last_expr.type
+            ctx.return_type = last_expr.type
+        end
     end
 
     typed_ast.children[2].type = ctx.return_type

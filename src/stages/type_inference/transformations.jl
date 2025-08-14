@@ -38,15 +38,26 @@ function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTCallTag}, ctx::TIC
             "Trying to call a symbol that is not a function ($(fsym.original[]) isa $(fsym.type))")
     end
 
-    for arg in args
+    first_arg_idx = 1
+    if fsym.original[] == :broadcast
+        @assert args[1].type == ASTFunction
+        first_arg_idx = 2
+    end
+
+    for arg in args[first_arg_idx:end]
         if !(arg.type <: ASTValueType)
             ast_error(node.original[],
-                "Trying to use a value for a function argument whose type could not be inferred")
+                "Invalid value type in '$fsym' function call argument: $(arg.type)")
         end
     end
 
     f = getproperty(ctx.defining_module, fsym.original[])
-    args_tuple = Tuple(map(arg -> to_ast(arg.type), args))
+    args_tuple = Tuple(map(arg -> to_ast(arg.type), args[first_arg_idx:end]))
+
+    if fsym.original[] == :broadcast
+        f_type = ctx.defining_module.eval(:(typeof($(args[1].original[]))))
+        args_tuple = (f_type, args_tuple...)
+    end
 
     if !hasmethod(f, args_tuple)
         ast_error(node.original[],
@@ -118,4 +129,50 @@ function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTLogicalChainTag}, 
     end
 
     node.type = ASTBool
+end
+
+const swizzle_groups = ["xyzw", "rgba", "stpq"]
+
+function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTRefTag}, ctx::TIContext)
+    @assert length(node.children) == 2
+    @assert node.children[1].type <: ASTVec "Indexing is only supported with vector types for now"
+
+    idx = node.children[2].original[]
+    if idx isa String
+        # swizzle
+        swizzle_group = nothing
+        for group in swizzle_groups
+            if all(char -> char in group, idx)
+                swizzle_group = group
+                break
+            end
+        end
+
+        if isnothing(swizzle_group)
+            ast_error(
+                node.original[],
+                "Invalid swizzle indexer: $idx\n",
+                "This might be because of invalid swizzle coordinates or using coordinates from different groups"
+            )
+        end
+
+        swizzle_reach = maximum(char -> findfirst(char, swizzle_group), idx)
+        el_count = elcount(node.children[1].type)
+
+        if swizzle_reach > el_count
+            ast_error(node.original[],
+                "Trying to access component $(swizzle_reach) of Vec$(el_count)"
+            )
+        end
+
+        new_len = length(idx)
+
+        @assert 2 <= new_len <= 4 "Invalid swizzle length in swizzle $idx"
+
+        node.type = get_ast_vec_type(eltype(node.children[1].type), new_len)
+    elseif idx isa Int
+    else
+        ast_error(node.original[],
+            "Invalid index type provided for vector indexing: $(node.children[2].type)")
+    end
 end

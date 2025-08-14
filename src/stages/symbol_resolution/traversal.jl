@@ -28,7 +28,7 @@ function collect_sym_usage!(ctx::SRContext, node::ScopedASTNode, ::Type{ExprTag}
         ctx.scoped_sym_usages[node.scope[].id_chain] = scope_ctx.sym_usages
     end
 
-    for (i, child) in enumerate(node.children)
+    for child in node.children
         collect_sym_usage!(ctx, child)
     end
 end
@@ -69,7 +69,7 @@ function collect_sym_usage_in_scope!(ctx::ScopeContext, node::ScopedASTNode, ::T
 
     @assert sym isa Symbol
 
-    if isdefined(ctx.defining_module, sym) && ctx.defining_module.eval(:($sym isa DataType))
+    if isdefined(ctx.defining_module, sym) && ctx.defining_module.eval(:($sym isa DataType || $sym isa Function))
         return
     end
 

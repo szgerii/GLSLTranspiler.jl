@@ -28,6 +28,7 @@ struct DeclTag <: ASTConstructTag end
 struct IfTag <: ASTConstructTag end
 struct ForTag <: ASTConstructTag end
 struct WhileTag <: ASTConstructTag end
+struct SwizzleTag <: ASTConstructTag end
 
 @def_pre_rules(
     ASTConstructTag,
@@ -50,6 +51,15 @@ struct WhileTag <: ASTConstructTag end
         end
 
         return false
+    end),
+    (SwizzleTag, node -> begin
+        expr = node.original[]
+
+        if !(expr isa Expr) || expr.head != :ref
+            return false
+        end
+
+        return node.children[2].type == ASTString
     end)
 )
 

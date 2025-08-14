@@ -1,0 +1,15 @@
+module GLSL
+
+using ..BaseTypes
+
+include("GLSLShaderContext.jl")
+include("GLSLPipelineContext.jl")
+
+include("../../stages/glsl_preprocessor/includes.jl")
+include("../../stages/glsl_transform/includes.jl")
+include("../../stages/glsl_code_gen/includes.jl")
+
+include("glsl_pipeline.jl")
+include("arg_macros.jl")
+
+end

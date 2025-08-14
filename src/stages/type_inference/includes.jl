@@ -19,7 +19,7 @@ include("run.jl")
 const TypeInferenceStage =
     Stage(
         "Type Inference (Scoped AST with usyms -> Typed AST)",
-        run_type_inference,
+        run_type_inference;
         output_names=["Typed AST", "Scope Tree", "Typed Unique Symbols"],
         output_formatters=[identity, _ -> nothing, typed_usym_list_string]
     )

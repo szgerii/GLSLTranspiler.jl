@@ -1,12 +1,23 @@
-function transform_children!(state::GLSLTransformState, ctx::GTContext)
+function transform_children!(state::GLSLTransformState, ctx::GTContext, first::Int=1, last::Int=-1)
     tnode = state.typed_node
-    state.children = Vector{GLSLTransformState}(undef, length(tnode.children))
 
-    for (i, child) in enumerate(tnode.children)
+    n = length(tnode.children)
+    if last == -1
+        last = n
+    end
+
+    state.children = Vector{GLSLTransformState}(undef, last - first + 1)
+
+    # n = last - first + 1
+    # f(1) = first
+    # f(n) = last
+    for (i, child) in enumerate(tnode.children[first:last])
+        idx = first + i - 1
+
         child_state = GLSLTransformState(child)
         glsl_transform!(child_state, ctx)
 
-        state.children[i] = child_state
+        state.children[idx] = child_state
     end
 end
 
@@ -47,19 +58,22 @@ function glsl_transform!(state::GLSLTransformState, ::Type{CallTag}, ctx::GTCont
     @assert !isempty(state.children)
     @assert state.children[1].glsl_node isa GLSLSymbol
 
-    @assert all(child -> child.typed_node.type <: ASTValueType, state.children[2:end])
+    is_broadcasted = state.children[1].glsl_node.sym == :broadcast
+    first_arg_idx = is_broadcasted ? 3 : 2
+    @assert all(child -> child.typed_node.type <: ASTValueType, state.children[first_arg_idx:end])
 
-    fsym = state.children[1].glsl_node.sym
+    fsym_idx = is_broadcasted ? 2 : 1
+    fsym = state.children[fsym_idx].glsl_node.sym
     @assert isdefined(ctx.defining_module, fsym)
 
     # ctor calls
     type = ctx.defining_module.eval(:(typeof($fsym)))
     if type == DataType
         glsl_type = to_glsl_type(TypeInference.to_tast(getfield(ctx.defining_module, fsym)))
-        state.children[1].glsl_node = GLSLTypeSymbol(glsl_type)
+        state.children[fsym_idx].glsl_node = GLSLTypeSymbol(glsl_type)
     end
 
-    state.glsl_node = GLSLCall(state.children[1].glsl_node, glsl_children(state, first=2))
+    state.glsl_node = GLSLCall(state.children[fsym_idx].glsl_node, glsl_children(state, first=first_arg_idx))
 end
 
 function glsl_transform!(state::GLSLTransformState, ::Type{ReturnTag}, ctx::GTContext)
@@ -190,4 +204,15 @@ function glsl_transform!(state::GLSLTransformState, ::Type{ForTag}, ctx::GTConte
     glsl_transform!(body_state, ctx)
 
 
+end
+
+function glsl_transform!(state::GLSLTransformState, ::Type{SwizzleTag}, ctx::GTContext)
+    transform_children!(state, ctx, 1, 1)
+
+    @assert state.children[1].typed_node.type <: ASTVec
+
+    swizzle = state.typed_node.children[2].original[]
+    @assert swizzle isa String
+
+    state.glsl_node = GLSLSwizzle(state.children[1].glsl_node, swizzle)
 end

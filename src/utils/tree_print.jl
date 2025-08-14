@@ -4,6 +4,8 @@ tree_node_string(node::ASTNode) = string(typeof(node), ": ", node)
 tree_node_string(node::Expr) = string(typeof(node), ": ", node.head)
 tree_node_string(node::T) where {T<:WrapperTree} = tree_node_string(get_original(node)[])
 
+print_traverse(misc, indent=0) = println(repeat(' ', indent), misc)
+
 function print_traverse(node::ASTNode, indent=0)
     padding = repeat(' ', indent)
     node_str = tree_node_string(node)

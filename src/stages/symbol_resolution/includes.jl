@@ -18,9 +18,9 @@ include("run.jl")
 const SymbolResolutionStage =
     Stage(
         "Symbol Resolution (Scoped AST -> Scoped AST + USYMS)",
-        run_sr,
-        [identity, _ -> nothing, usym_list_string, usym_mappings_string],
-        ["Scoped AST with usyms", "Scope Tree", "Unique Symbols", "Symbol Mappings"]
+        run_sr;
+        output_names=["Scoped AST with usyms", "Scope Tree", "Unique Symbols", "Symbol Mappings"],
+        output_formatters=[identity, _ -> nothing, usym_list_string, usym_mappings_string]
     )
 
 end
