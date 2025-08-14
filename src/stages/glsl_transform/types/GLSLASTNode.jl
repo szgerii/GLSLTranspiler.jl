@@ -60,9 +60,19 @@ end
     body::GLSLBlock
 end
 
+@exported struct GLSLSwizzle <: GLSLASTNode
+    base::GLSLASTNode
+    swizzle::String
+end
+
 @exported struct GLSLAssignment <: GLSLASTNode
-    lhs::GLSLSymbol
+    lhs::Union{GLSLSymbol,GLSLSwizzle}
     rhs::GLSLASTNode
+
+    function GLSLAssignment(lhs::Union{GLSLSymbol,GLSLSwizzle}, rhs::GLSLASTNode)
+        @assert lhs isa GLSLSymbol || length(lhs.swizzle) == 1
+        new(lhs, rhs)
+    end
 end
 
 @exported struct GLSLCall <: GLSLASTNode
@@ -98,9 +108,4 @@ end
 @exported struct GLSLWhile <: GLSLASTNode
     condition::GLSLASTNode
     body::GLSLBlock
-end
-
-@exported struct GLSLSwizzle <: GLSLASTNode
-    base::GLSLASTNode
-    swizzle::String
 end

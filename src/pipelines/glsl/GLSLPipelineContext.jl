@@ -1,4 +1,5 @@
 import ...GLSLTranspiler
+using ...GLSLTranspiler.TypeInference
 
 export GLSLPipelineContext
 
@@ -41,3 +42,7 @@ function BaseTypes.get_env_sym_type(sym::Symbol, ctx::GLSLPipelineContext)
 
     !isnothing(idx) ? ctx.env_syms[idx][2] : nothing
 end
+
+BaseTypes.env_fn_ret(_::Val{:distance}, ::Type{T}, ::Type{T}) where {T<:ASTVecNF} = Float32
+BaseTypes.env_fn_ret(_::Val{:distance}, ::Type{T}, ::Type{T}) where {T<:ASTVecND} = Float64
+BaseTypes.env_fn_ret(_::Val{:discard}) = Nothing

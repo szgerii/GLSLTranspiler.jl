@@ -69,6 +69,7 @@ j = 1
 const Vec2 = GLSLTranspiler.Vec2
 const Vec3 = GLSLTranspiler.Vec3
 const Vec4 = GLSLTranspiler.Vec4
+const IVec2 = GLSLTranspiler.Vec2T{Int32}
 const IntVec3 = GLSLTranspiler.Vec3T{Int32}
 
 @skip @transpile(
@@ -113,16 +114,14 @@ const IntVec3 = GLSLTranspiler.Vec3T{Int32}
     end
 )
 
-const IVec2 = GLSLTranspiler.Vec2T{Int32}
-
-@transpile(
+@skip @transpile(
     GLSLTranspiler.GLSL.glsl_pipeline,
     function green(@out(out_col::Vec4))
         out_col = Vec4(0, 1, 0, 1)
     end
 )
 
-code = @transpile(
+@skip code = @transpile(
     GLSLTranspiler.GLSL.glsl_pipeline,
     function shadertoy_demo(
         @out(frag_color::Vec4),
@@ -138,9 +137,23 @@ code = @transpile(
     true
 )
 
-println("\nFinal transpilation output is:")
-println(code)
+@transpile(
+    GLSLTranspiler.GLSL.glsl_pipeline,
+    function mouse_follow(
+        @out(color::Vec4),
+        @uniform(time::Float32),
+        @uniform(mouse::Vec2),
+        @uniform(resolution::IVec2)
+    )
+        frag_pos = gl_FragCoord["xy"]
+        frag_pos["y"] = -frag_pos["y"] + resolution["y"]
 
-#println("\nExecuting function:")
-#println(test_fn(1))
-#println(i)
+        if distance(frag_pos, mouse) < 50.0f0
+            f_in = time * 2.0f0
+            color = Vec4(0.5f0 * (1 + sin(f_in)), 0.2f0, 0.5f0 * (1 + cos(f_in + 3.1415f0 / 2.0f0)), 1.0f0)
+        else
+            discard()
+        end
+    end,
+    true
+)

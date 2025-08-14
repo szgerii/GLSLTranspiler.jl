@@ -86,3 +86,7 @@ function preprocess_transform(::Type{BroadcastCallPreTag}, node::Expr, _::Module
 
     [Expr(:call, :broadcast, fsym, args...)]
 end
+
+function preprocess_transform(::Type{PrefixNegPreTag}, node::Expr, _::Module)::Vector{ASTNode}
+    [Expr(:call, :*, -1, node)]
+end

@@ -29,6 +29,8 @@ struct IfTag <: ASTConstructTag end
 struct ForTag <: ASTConstructTag end
 struct WhileTag <: ASTConstructTag end
 struct SwizzleTag <: ASTConstructTag end
+struct IndexerTag <: ASTConstructTag end
+struct DiscardTag <: ASTConstructTag end
 
 @def_pre_rules(
     ASTConstructTag,
@@ -47,7 +49,7 @@ struct SwizzleTag <: ASTConstructTag end
         if arg_count == 2
             return expr.args[2] isa Expr && expr.args[2].head == :block
         elseif arg_count == 3
-            return expr.args[3] isa Expr && expr.args[3].head == :elseif
+            return expr.args[3] isa Expr && expr.args[3].head in [:elseif, :block]
         end
 
         return false
@@ -60,6 +62,10 @@ struct SwizzleTag <: ASTConstructTag end
         end
 
         return node.children[2].type == ASTString
+    end),
+    (IndexerTag, node -> begin
+        expr = node.original[]
+        expr isa Expr && expr.head == :ref
     end)
 )
 

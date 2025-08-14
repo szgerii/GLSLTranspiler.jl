@@ -34,8 +34,23 @@ function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTCallTag}, ctx::TIC
     args = node.children[2:end]
 
     if fsym.type != ASTFunction
-        ast_error(node.original[],
-            "Trying to call a symbol that is not a function ($(fsym.original[]) isa $(fsym.type))")
+        arg_types = map(arg -> arg.type, args)
+        ret = env_fn_ret(Val(fsym.original[]), arg_types...)
+
+        if ismissing(ret)
+            ast_error(node.original[],
+                "Trying to call a symbol that is not a function ($(fsym.original[]) isa $(fsym.type))")
+        end
+
+        tast_type = to_tast(ret)
+
+        if isnothing(tast_type)
+            error("Invalid return type for environment function $(fsym.original[]) called with args $(arg_types)")
+        end
+
+        node.type = tast_type
+
+        return
     end
 
     first_arg_idx = 1
@@ -51,7 +66,7 @@ function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTCallTag}, ctx::TIC
         end
     end
 
-    f = getproperty(ctx.defining_module, fsym.original[])
+    f = getfield(ctx.defining_module, fsym.original[])
     args_tuple = Tuple(map(arg -> to_ast(arg.type), args[first_arg_idx:end]))
 
     if fsym.original[] == :broadcast
@@ -137,6 +152,9 @@ function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTRefTag}, ctx::TICo
     @assert length(node.children) == 2
     @assert node.children[1].type <: ASTVec "Indexing is only supported with vector types for now"
 
+    el_type = eltype(node.children[1].type)
+    el_count = elcount(node.children[1].type)
+
     idx = node.children[2].original[]
     if idx isa String
         # swizzle
@@ -157,7 +175,6 @@ function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTRefTag}, ctx::TICo
         end
 
         swizzle_reach = maximum(char -> findfirst(char, swizzle_group), idx)
-        el_count = elcount(node.children[1].type)
 
         if swizzle_reach > el_count
             ast_error(node.original[],
@@ -167,10 +184,19 @@ function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTRefTag}, ctx::TICo
 
         new_len = length(idx)
 
-        @assert 2 <= new_len <= 4 "Invalid swizzle length in swizzle $idx"
-
-        node.type = get_ast_vec_type(eltype(node.children[1].type), new_len)
+        if new_len == 1
+            node.type = to_tast(el_type)
+            @assert !isnothing(node.type) "Invalid element type $el_type for vector type $(node.children[1].type)"
+        elseif 2 <= new_len <= 4
+            node.type = get_ast_vec_type(el_type, new_len)
+        else
+            error("Invalid swizzle length in swizzle $idx for $(node.children[1].original[])")
+        end
     elseif idx isa Int
+        @assert idx <= el_count "Index out of bounds: attempting to access component $idx of $(node.children[1].type)"
+
+        node.type = to_tast(el_type)
+        @assert !isnothing(node.type) "Invalid element type $el_type for vector type $(node.children[1].type)"
     else
         ast_error(node.original[],
             "Invalid index type provided for vector indexing: $(node.children[2].type)")

@@ -7,6 +7,7 @@ struct MultipleAssignmentPreTag <: PreTag end
 struct MultipleTargetDeclPreTag <: PreTag end
 struct BroadcastOperatorPreTag <: PreTag end
 struct BroadcastCallPreTag <: PreTag end
+struct PrefixNegPreTag <: PreTag end
 
 @def_eqs(
     PreTag,
@@ -51,6 +52,12 @@ struct BroadcastCallPreTag <: PreTag end
             end
 
             ex.args[1] isa Symbol && ex.args[2] isa Expr && ex.args[2].head == :tuple
+        end
+    ),
+    (
+        PrefixNegPreTag,
+        ex -> begin
+            ex.head == :call && length(ex.args) == 2 && ex.args[1] == :(-)
         end
     )
 )

@@ -47,9 +47,11 @@ function glsl_transform!(state::GLSLTransformState, ::Type{AssignmentTag}, ctx::
     transform_children!(state, ctx)
 
     @assert length(state.children) == 2
-    @assert state.children[1].glsl_node isa GLSLSymbol
 
-    state.glsl_node = GLSLAssignment(state.children[1].glsl_node, state.children[2].glsl_node)
+    lhs = state.children[1].glsl_node
+    @assert lhs isa GLSLSymbol || (lhs isa GLSLSwizzle && length(lhs.swizzle) == 1)
+
+    state.glsl_node = GLSLAssignment(lhs, state.children[2].glsl_node)
 end
 
 function glsl_transform!(state::GLSLTransformState, ::Type{CallTag}, ctx::GTContext)
@@ -64,10 +66,9 @@ function glsl_transform!(state::GLSLTransformState, ::Type{CallTag}, ctx::GTCont
 
     fsym_idx = is_broadcasted ? 2 : 1
     fsym = state.children[fsym_idx].glsl_node.sym
-    @assert isdefined(ctx.defining_module, fsym)
 
     # ctor calls
-    type = ctx.defining_module.eval(:(typeof($fsym)))
+    type = isdefined(ctx.defining_module, fsym) && ctx.defining_module.eval(:(typeof($fsym)))
     if type == DataType
         glsl_type = to_glsl_type(TypeInference.to_tast(getfield(ctx.defining_module, fsym)))
         state.children[fsym_idx].glsl_node = GLSLTypeSymbol(glsl_type)
@@ -209,10 +210,17 @@ end
 function glsl_transform!(state::GLSLTransformState, ::Type{SwizzleTag}, ctx::GTContext)
     transform_children!(state, ctx, 1, 1)
 
-    @assert state.children[1].typed_node.type <: ASTVec
-
     swizzle = state.typed_node.children[2].original[]
     @assert swizzle isa String
 
     state.glsl_node = GLSLSwizzle(state.children[1].glsl_node, swizzle)
+end
+
+function glsl_transform!(state::GLSLTransformState, ::Type{IndexerTag}, ctx::GTContext)
+    transform_children!(state, ctx, 1, 1)
+
+    idx = state.original[].args[2]
+    @assert 1 <= idx <= elcount(state.children[1].typed_node.type)
+
+    state.glsl_node = GLSLSwizzle(state.children[1].glsl_node, "xyzw"[idx] |> string)
 end

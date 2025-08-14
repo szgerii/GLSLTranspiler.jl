@@ -74,6 +74,10 @@ end
 glsl_cg_traverse(node::GLSLAssignment, ctx::GLSLCodeGenContext) = "$(glsl_cg_traverse(node.lhs, ctx)) = $(glsl_cg_traverse(node.rhs, ctx))"
 
 function glsl_cg_traverse(node::GLSLCall, ctx::GLSLCodeGenContext)::String
+    if node.fn_name isa GLSLSymbol && node.fn_name.sym == :discard
+        return "discard"
+    end
+
     code = ""
     is_infix = node.fn_name isa GLSLSymbol && node.fn_name.sym in infix_functions
 

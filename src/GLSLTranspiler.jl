@@ -37,21 +37,16 @@ include("pipelines/glsl/includes.jl")
 # Public API stuff for transpilation
 include("transpile.jl")
 
-using PrecompileTools: @setup_workload, @compile_workload
+using PrecompileTools: @compile_workload
 
 # TODO profile for weak spots
 # Precompile
 @compile_workload begin
     @transpile GLSL.glsl_pipeline function shadertoy_demo(
-        GLSL.@out(frag_color::Vec4),
-        GLSL.@uniform(time::Float32),
-        GLSL.@uniform(resolution::IVec2)
+        GLSL.@out(a::Vec4),
+        GLSL.@in(b::Float32),
+        GLSL.@uniform(c::IVec2)
     )
-        uv = gl_FragCoord["xy"] ./ resolution
-
-        col = 0.5f0 .+ 0.5f0 .* cos.(time .+ uv["xyx"] + Vec3(0, 2, 4))
-
-        frag_color = Vec4(col, 1.0f0)
     end
 end
 

@@ -78,7 +78,12 @@ end
 
 function collect_assignment!(ctx::ScopeContext, node::ScopedASTNode)
     lhs = node.original[].args[1]
-    @assert lhs isa Symbol "Unexpected non-Symbol AST node encountered in lhs of an assignment"
+
+    if lhs isa Expr && lhs.head == :ref
+        return
+    end
+
+    @assert lhs isa Symbol "Unexpected non-Symbol, non-ref AST node encountered in lhs of an assignment"
 
     rhs = node.children[2]
 

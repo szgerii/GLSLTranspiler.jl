@@ -30,10 +30,13 @@ const GLM_EL_VEC_TYPES = [
 get_ast_vec_type(::Type{T}, n::Int) where T = get_ast_vec_type(T, Val(n))
 
 vec_type_syms = []
-for n in 2:4
-    for (suffix, el_type) in GLM_EL_VEC_TYPES
+for (suffix, el_type) in GLM_EL_VEC_TYPES
+    abs_sym = Symbol("ASTVecN", suffix)
+    @eval @exported abstract type $abs_sym <: ASTVec end
+
+    for n in 2:4
         sym = Symbol("ASTVec", n, suffix)
-        @eval @exported struct $sym <: ASTVec end
+        @eval @exported struct $sym <: $abs_sym end
         @eval Base.eltype(::Type{$sym}) = $el_type
         @eval elcount(::Type{$sym}) = $n
         @eval get_ast_vec_type(::Type{$el_type}, _::Val{$n}) = $sym
