@@ -9,10 +9,22 @@ struct SRContext
     scoped_sym_usages::ScopedSymbolUsageTable
     usyms::Dict{Symbol,UniqueSymbol} # usym_id => UniqueSymbol
     usym_mappings::ScopedUSymMapping
+    env_syms::Vector{Symbol}
 end
 
 SRContext(defining_module::Module, root_scope::Ref{Scope}) =
-    SRContext(defining_module, root_scope, ScopedSymbolUsageTable(), Dict(), ScopedUSymMapping())
+    SRContext(defining_module, root_scope, ScopedSymbolUsageTable(), Dict(), ScopedUSymMapping(), Vector())
+
+function reg_env_usym!(ctx::SRContext, sym::Symbol)::UniqueSymbol
+    usym = UniqueSymbol(sym, sym, FUNCTION_SCOPE_ID)
+
+    @assert !haskey(ctx.usyms, sym) "Trying to re-register environment symbol: $sym"
+
+    push!(ctx.env_syms, sym)
+    ctx.usyms[sym] = usym
+
+    usym
+end
 
 function reg_usym!(ctx::SRContext, sym::Symbol, scope_id::IDChain)::UniqueSymbol
     usym_id = get_usym_id(sym, scope_id)
@@ -28,21 +40,34 @@ end
 reg_usym!(ctx::SRContext, sym::Symbol, scope::Scope) = reg_usym!(ctx, sym, scope.id_chain)
 reg_usym!(ctx::SRContext, sym::Symbol, scope::Ref{Scope}) = reg_usym!(ctx, sym, scope[])
 
-function add_mapping!(ctx::SRContext, sym::Symbol, scope::Ref{Scope}, usym::UniqueSymbol)
-    id_chain = scope[].id_chain
-
-    if !haskey(ctx.usym_mappings, id_chain)
-        ctx.usym_mappings[id_chain] = USymMapping()
+function add_mapping!(ctx::SRContext, sym::Symbol, scope_id::IDChain, usym::UniqueSymbol)
+    if !haskey(ctx.usym_mappings, scope_id)
+        ctx.usym_mappings[scope_id] = USymMapping()
     end
 
-    if haskey(ctx.usym_mappings[id_chain], sym)
-        error("Trying to re-register mapping for $sym => $(usym.id) in scope #$(id_chain_string(id_chain))")
+    prev_mapping = get(ctx.usym_mappings[scope_id], sym, nothing)
+    if !isnothing(prev_mapping) && usym.id != prev_mapping
+        error(
+            "Trying to modify mapping for $sym => $(prev_mapping) in scope #$(id_chain_string(scope_id)) to $(usym.id)",
+        )
     end
 
-    ctx.usym_mappings[id_chain][sym] = usym.id
+    ctx.usym_mappings[scope_id][sym] = usym.id
 end
 
+add_mapping!(ctx::SRContext, sym::Symbol, scope::Ref{Scope}, usym::UniqueSymbol) =
+    add_mapping!(ctx, sym, scope[].id_chain, usym)
+
 function find_usym_in_parents(sym::Symbol, id_chain::IDChain, ctx::SRContext)::Union{UniqueSymbol,Nothing}
+    for (_, usym) in ctx.usyms
+        if sym == usym.original_sym &&
+           (id_chain == usym.def_scope_id || is_parent_of(id_chain, usym.def_scope_id))
+            return usym
+        end
+    end
+
+    return nothing
+
     # go upwards the scope tree, excluding the global scope
     for i in length(id_chain):-1:1
         id_snippet = id_chain[1:i]

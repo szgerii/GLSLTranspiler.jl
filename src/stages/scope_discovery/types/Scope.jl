@@ -1,4 +1,4 @@
-export IDChain, Scope, ScopeType, GLOBAL_SCOPE_ID, FUNCTION_SCOPE_ID, id_chain_string, same_scope, get_scope, get_root, in_hard_scope, is_global
+export IDChain, Scope, ScopeType, GLOBAL_SCOPE_ID, FUNCTION_SCOPE_ID, id_chain_string, same_scope, get_scope, get_root, in_hard_scope, is_global, is_parent_of
 
 const IDChain = Vector{UInt8}
 const GLOBAL_SCOPE_ID::IDChain = [0x1]
@@ -54,7 +54,7 @@ end
 same_scope(a::Scope, b::Scope) = a.id_chain == b.id_chain
 same_scope(a::Ref{Scope}, b::Ref{Scope}) = same_scope(a[], b[])
 
-function is_parent_of(child::IDChain, parent::IDChain)::Bool
+function is_parent_of(parent::IDChain, child::IDChain)::Bool
     if length(child) <= length(parent)
         return false
     end

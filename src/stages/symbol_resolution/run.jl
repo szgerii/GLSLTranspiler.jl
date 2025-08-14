@@ -2,8 +2,16 @@ using Logging
 
 const SymResStageReturn = Tuple{ScopedASTNode,Ref{Scope},Vector{UniqueSymbol},ScopedUSymMapping}
 
-function run_sr(mod::Module, _::PipelineContext, scoped_ast::ScopedASTNode, root_scope::Ref{Scope})::SymResStageReturn
+function run_sr(mod::Module, pipeline_ctx::PipelineContext, scoped_ast::ScopedASTNode, root_scope::Ref{Scope})::SymResStageReturn
     ctx = SRContext(mod, root_scope)
+
+    env_syms = get_env_syms(pipeline_ctx)
+    for env_sym in env_syms
+        usym = reg_env_usym!(ctx, env_sym)
+        add_mapping!(ctx, env_sym, FUNCTION_SCOPE_ID, usym)
+    end
+
+    println(usym_list_string(collect(values(ctx.usyms))))
 
     # collect how each symbol is used per scope
     collect_sym_usage!(ctx, scoped_ast)

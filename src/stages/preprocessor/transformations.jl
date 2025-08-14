@@ -70,6 +70,16 @@ function preprocess_transform(::Type{MultipleTargetDeclPreTag}, node::Expr, _::M
     result
 end
 
+function preprocess_transform(::Type{BroadcastOperatorPreTag}, node::Expr, _::Module)::Vector{ASTNode}
+    @assert length(node.args) >= 2
+    @assert node.args[1] isa Symbol
+
+    op_sym = string(node.args[1])[2:end] |> Symbol
+    args = node.args[2:end]
+
+    [Expr(:call, :broadcast, op_sym, args...)]
+end
+
 function preprocess_transform(::Type{BroadcastCallPreTag}, node::Expr, _::Module)::Vector{ASTNode}
     fsym = node.args[1]
     args = node.args[2].args

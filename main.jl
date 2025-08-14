@@ -199,28 +199,15 @@ const IVec2 = GLSLTranspiler.Vec2T{Int32}
 @transpile(
     GLSLTranspiler.GLSL.glsl_pipeline,
     function shadertoy_demo(
-        @in(frag_coord::Vec2),
         @out(frag_color::Vec4),
         @uniform(time::Float32),
-        @uniform(res::IVec2)
+        @uniform(resolution::IVec2)
     )
-        v2 = Vec2(1, 2)
-        v4 = v2["xyxx"]
-        #=
-        // Normalized pixel coordinates (from 0 to 1)
-        vec2 uv = fragCoord/iResolution.xy;
+        uv = gl_FragCoord["xy"] ./ resolution
 
-        // Time varying pixel color
-        vec3 col = 0.5 + 0.5*cos(iTime+uv.xyx+vec3(0,2,4));
+        col = 0.5f0 .+ 0.5f0 .* cos.(time .+ uv["xyx"] + Vec3(0, 2, 4))
 
-        // Output to screen
-        fragColor = vec4(col,1.0);
-        =#
-        #gl_FragCoord = Vec4(0, 0, 0, 1)
-        #
-        #fc_xy = gl_FragCoord
-        #
-        #uv = gl_FragCoord / res
+        frag_color = Vec4(col, 1.0f0)
     end
 )
 

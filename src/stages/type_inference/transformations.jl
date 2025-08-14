@@ -23,7 +23,7 @@ function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTAssignmentTag}, ct
     elseif lhs.type != rhs.type
         # TODO: allow this through typed usyms
         ast_error(node.original[],
-            "Reassignment to new type: Trying to bind variable '$vname' of type '$(lhs.type)' to a value of type '$(rhs.type)'. This is not allowed for now, but support will be added later.")
+            "Reassignment to new type: Trying to bind variable '$vname' of type '$(lhs.type)' to a value of type '$(rhs.type)'.")
     end
 
     node.type = rhs.type

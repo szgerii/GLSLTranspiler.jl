@@ -1,4 +1,4 @@
-export Stage, Pipeline, PipelineContext, init_pipeline_ctx
+export Stage, Pipeline, PipelineContext, init_pipeline_ctx, get_env_syms, get_env_sym_type
 
 struct Stage
     name::String
@@ -24,11 +24,15 @@ abstract type PipelineContext end
 function init_pipeline_ctx(::Type{CtxT})::CtxT where {CtxT<:PipelineContext}
     @assert(
         all(field_type -> missing isa field_type, fieldtypes(CtxT)),
-        "Invalid PipelineContext subtype '$CtxT': all fields have to be able to contain the 'missing' value or an explicit init_pipeline method definition must exist for the context subtype"
+        "Invalid PipelineContext subtype '$CtxT': all fields have to be able to contain the 'missing' value or an explicit init_pipeline_ctx method definition must exist for the context subtype"
     )
 
     CtxT(fill(missing, fieldcount(CtxT))...)
 end
+
+get_env_syms(_::PipelineContext) = Symbol[]
+get_env_sym_type(_::Symbol, _::PipelineContext) =
+    error("Invalid pipeline context: pipeline uses environment symbols, but does not define method for get_env_sym_type(sym, ctx)")
 
 struct Pipeline
     name::String

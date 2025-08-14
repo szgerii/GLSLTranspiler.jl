@@ -3,6 +3,7 @@ module GLSLPreprocessor
 using ....GLSLTranspiler
 using ....GLSLTranspiler.GLSL
 using ....GLSLTranspiler.BaseTypes
+using ....GLSLTranspiler.SymbolResolution
 
 include("run.jl")
 

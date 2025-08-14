@@ -21,6 +21,7 @@ function run_glsl_transform(
     uniform_syms = map(var -> var[1], pipeline_ctx.shader_ctx.uniform_vars)
 
     interface_decls = GLSLDeclaration[]
+    env_syms = get_env_syms(pipeline_ctx)
 
     for usym in usyms
         is_param = usym.original_sym in params && usym.def_scope_id == FUNCTION_SCOPE_ID
@@ -30,7 +31,7 @@ function run_glsl_transform(
             continue
         end
 
-        sym = GLSLSymbol(usym.id)
+        sym_node = GLSLSymbol(usym.id)
         if is_param
             original_sym = split(string(usym.id), USYM_INFIX)[1] |> Symbol
             sq = (original_sym in in_syms ? SQ_In :
@@ -39,11 +40,10 @@ function run_glsl_transform(
 
             @assert !isnothing(sq)
 
-            push!(interface_decls, GLSLDeclaration(sym, to_glsl_type(usym.type), sq))
-        else
-            pushfirst!(glsl_ast.body, GLSLDeclaration(sym, to_glsl_type(usym.type)))
+            push!(interface_decls, GLSLDeclaration(sym_node, to_glsl_type(usym.type), sq))
+        elseif !(sym_node.sym in env_syms)
+            pushfirst!(glsl_ast.body, GLSLDeclaration(sym_node, to_glsl_type(usym.type)))
         end
-
     end
 
     pushfirst!(glsl_ast.body, GLSLNewLine())

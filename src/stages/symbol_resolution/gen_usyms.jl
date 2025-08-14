@@ -47,7 +47,11 @@ function gen_usyms!(ctx::SRContext, scope::Ref{Scope})
             end
         end
 
-        usym = nothing
+        # at the end
+        # usym == missing => error
+        # usym == nothing => skip
+        # usym isa UniqueSymbol => add mapping between sym and usym in the current scope
+        usym = missing
         if scope_source == SymGlobalDeclaration
             @assert isdefined(ctx.defining_module, sym) "Symbol '$sym' with global declaration couldn't be found in the defining module (scope #$(id_chain_string(scope[].id_chain)))"
 
@@ -57,7 +61,11 @@ function gen_usyms!(ctx::SRContext, scope::Ref{Scope})
                 usym = reg_usym!(ctx, sym, get_root(scope))
             end
         elseif scope_source == SymLocalDeclaration
-            usym = reg_usym!(ctx, sym, scope)
+            if scope[].id_chain == FUNCTION_SCOPE_ID && sym in ctx.env_syms
+                usym = nothing
+            else
+                usym = reg_usym!(ctx, sym, scope)
+            end
         elseif scope_source == SymAssignment
             local_usym = find_usym_in_parents(sym, scope, ctx)
 
@@ -79,7 +87,11 @@ function gen_usyms!(ctx::SRContext, scope::Ref{Scope})
             end
         end
 
-        @assert !isnothing(usym) "Failed to determine mapping for symbol '$sym' in scope #$(id_chain_string(scope[].id_chain))"
+        @assert !ismissing(usym) "Failed to determine mapping for symbol '$sym' in scope #$(id_chain_string(scope[].id_chain))"
+
+        if isnothing(usym)
+            continue
+        end
 
         if usym.def_scope_id == scope[].id_chain
             for usage in usages

@@ -5,6 +5,7 @@ struct StringCallPreTag <: PreTag end
 struct ComparisonChainPreTag <: PreTag end
 struct MultipleAssignmentPreTag <: PreTag end
 struct MultipleTargetDeclPreTag <: PreTag end
+struct BroadcastOperatorPreTag <: PreTag end
 struct BroadcastCallPreTag <: PreTag end
 
 @def_eqs(
@@ -35,6 +36,10 @@ struct BroadcastCallPreTag <: PreTag end
     (
         MultipleTargetDeclPreTag,
         ex -> ex.head in [:global, :local] && length(ex.args) >= 2
+    ),
+    (
+        BroadcastOperatorPreTag,
+        ex -> ex.head == :call && startswith(string(ex.args[1]), '.')
     ),
     (
         BroadcastCallPreTag,

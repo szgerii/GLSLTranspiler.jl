@@ -3,7 +3,7 @@ using ..GLSLTranspiler: ast_error, print_traverse
 const TypeInferStageReturn = Tuple{TypedASTNode,Ref{Scope},Vector{TypedUniqueSymbol}}
 
 function run_type_inference(
-    mod::Module, _::PipelineContext, scoped_ast::ScopedASTNode,
+    mod::Module, pipeline_ctx::PipelineContext, scoped_ast::ScopedASTNode,
     root_scope::Ref{Scope}, usyms::Vector{UniqueSymbol}, usym_table::ScopedUSymMapping
 )::TypeInferStageReturn
     ctx = TIContext(mod, root_scope, map(usym -> (usym, nothing), usyms), usym_table)
@@ -29,7 +29,7 @@ function run_type_inference(
         @assert type_sym isa Symbol
 
         pname = string(name_sym)
-        src_type = mod.eval(type_sym)
+        src_type = getfield(mod, type_sym)
         tast_type = to_tast(src_type)
 
         if isnothing(tast_type)
@@ -40,10 +40,34 @@ function run_type_inference(
         idx = find_usym_index(target_usym_id, ctx)
 
         if isnothing(idx)
+            target_usym_id = name_sym
+            idx = find_usym_index(name_sym, ctx)
+        end
+
+        if isnothing(idx)
             ast_error(param_decl, "Unique symbol for param $name_sym was not found in the output of the symbol resolution stage")
         end
 
         add_type!(ctx, target_usym_id, tast_type)
+    end
+
+    for env_sym in get_env_syms(pipeline_ctx)
+        idx = findfirst(t_usym -> t_usym[1].id == env_sym, ctx.typed_usyms)
+        @assert !isnothing(idx) "Couldn't find environment symbol $env_sym in usym list"
+
+        if isnothing(ctx.typed_usyms[idx][2])
+            src_type = get_env_sym_type(env_sym, pipeline_ctx)
+            if isnothing(src_type)
+                error("Couldn't get type of environment symbol $env_sym from get_env_sym_type")
+            end
+
+            tast_type = to_tast(src_type)
+            if isnothing(tast_type)
+                error("Invalid environment symbol type $src_type for symbol $env_sym")
+            end
+
+            add_type!(ctx, env_sym, tast_type)
+        end
     end
 
     typed_ast = TypedASTNode(scoped_ast)
