@@ -86,7 +86,9 @@ function glsl_cg_traverse(node::GLSLCall, ctx::GLSLCodeGenContext)::String
         code *= join(map(arg -> glsl_cg_traverse(arg, ctx), node.args), ",")
         code *= ")"
     else
+        code *= "("
         code *= join(map(arg -> glsl_cg_traverse(arg, ctx), node.args), " $(glsl_cg_traverse(node.fn_name, ctx)) ")
+        code *= ")"
     end
 
     code

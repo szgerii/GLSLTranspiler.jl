@@ -170,13 +170,13 @@ const IntVec3 = GLSLTranspiler.Vec3T{Int32}
     function mouse_follow(
         @out(color::Vec4),
         @uniform(time::Float32),
-        @uniform(mouse::Vec2),
+        @uniform(mouse::Vec4),
         @uniform(resolution::IVec2)
     )
         frag_pos = gl_FragCoord["xy"]
         frag_pos["y"] = -frag_pos["y"] + resolution["y"]
 
-        dist = distance(frag_pos, mouse)
+        dist = distance(frag_pos, mouse["xy"])
         if dist < 50.0f0
             f_in = time * 2.0f0
             color = Vec4(0.5f0 * (1 + sin(f_in)), 0.2f0, 0.5f0 * (1 + cos(f_in + 3.1415f0 / 2.0f0)), 1.0f0)
@@ -215,6 +215,8 @@ const IntVec3 = GLSLTranspiler.Vec3T{Int32}
             col = mix(col, Vec3(1, 1, 0), 1.0f0 - smoothstep(0.0f0, 0.005f0, abs(length(p .- m) - abs(d)) - 0.0025f0))
             col = mix(col, Vec3(1, 1, 0), 1.0f0 - smoothstep(0.0f0, 0.005f0, length(p .- m) - 0.015f0))
         end
+
+        frag_col = Vec4(col, 1.0f0)
     end,
     true
 )
