@@ -4,6 +4,7 @@ using ..BaseTypes
 
 include("GLSLShaderContext.jl")
 include("GLSLPipelineContext.jl")
+include("env_fn.jl")
 
 include("../../stages/glsl_preprocessor/includes.jl")
 include("../../stages/glsl_transform/includes.jl")

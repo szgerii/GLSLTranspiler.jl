@@ -1,5 +1,4 @@
 module GLSLTranspiler
-__precompile__()
 
 using Tagger
 

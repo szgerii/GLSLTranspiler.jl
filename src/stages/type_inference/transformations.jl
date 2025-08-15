@@ -33,22 +33,12 @@ function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTCallTag}, ctx::TIC
     fsym = node.children[1]
     args = node.children[2:end]
 
-    if fsym.type != ASTFunction
-        arg_types = map(arg -> arg.type, args)
-        ret = env_fn_ret(ctx.pipeline_ctx, Val(fsym.original[]), arg_types...)
+    arg_types = map(arg -> arg.type, args)
+    ret = env_fn_ret(ctx.pipeline_ctx, Val(fsym.original[]), arg_types...)
+    if !ismissing(ret)
+        @assert ret <: ASTType "Invalid return type for environment function $(fsym.original[]) called with args $(arg_types)"
 
-        if ismissing(ret)
-            ast_error(node.original[],
-                "Trying to call a symbol that is not a function ($(fsym.original[]) isa $(fsym.type))")
-        end
-
-        tast_type = to_tast(ret)
-
-        if isnothing(tast_type)
-            error("Invalid return type for environment function $(fsym.original[]) called with args $(arg_types)")
-        end
-
-        node.type = tast_type
+        node.type = ret
 
         return
     end
@@ -57,6 +47,10 @@ function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTCallTag}, ctx::TIC
     if fsym.original[] == :broadcast
         @assert args[1].type == ASTFunction
         first_arg_idx = 2
+    elseif fsym.type != ASTFunction
+        ast_error(node.original[],
+            "Trying to call a symbol that is not a function ($(fsym.original[]) isa $(fsym.type))\n",
+            "Argument types are: ", arg_types)
     end
 
     for arg in args[first_arg_idx:end]
@@ -64,6 +58,11 @@ function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTCallTag}, ctx::TIC
             ast_error(node.original[],
                 "Invalid value type in '$fsym' function call argument: $(arg.type)")
         end
+    end
+
+    if !isdefined(ctx.defining_module, fsym.original[])
+        ast_error(node.original[],
+            "Couldn't find function '$(fsym.original[])' in the definition's module or in the environment function list.")
     end
 
     f = getfield(ctx.defining_module, fsym.original[])
