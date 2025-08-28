@@ -189,8 +189,7 @@ code = @transpile(
         @uniform(mouse::Vec4),
         @uniform(resolution::IVec2)
     )
-        # TODO symbol swizzle (:xy)
-        p = (2.0 * gl_FragCoord["xy"] .- resolution["xy"]) ./ resolution["y"]
+        p = (2.0 * gl_FragCoord[:xy] .- resolution["xy"]) ./ resolution["y"]
         m = (2.0 * mouse["xy"] .- resolution["xy"]) ./ resolution["y"]
 
         # src/Dependents/curve.jl
@@ -225,7 +224,7 @@ println(code)
 
 # GLSLTranspiler.transpiler_config.literals_as_f32 = false
 
-code = @transpile(
+@skip code = @transpile(
     GLSLTranspiler.GLSL.glsl_pipeline,
     function test_shader(@in(a::Float32))
         x = 2
@@ -248,7 +247,7 @@ code = @transpile(
     false
 )
 
-println(code)
+# println(code)
 
 @skip @transpile(
     GLSLTranspiler.GLSL.glsl_pipeline,

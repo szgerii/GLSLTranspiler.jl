@@ -84,6 +84,10 @@ _precomp_global = 0.0f0
         v2 = v3["xy"]
         v2 = v4["xy"]
 
+        v2 = v2[:xy]
+        v2 = v3[:xy]
+        v2 = v4[:xy]
+
         y = v2[1]
         y = v3[1]
         y = v4[1]

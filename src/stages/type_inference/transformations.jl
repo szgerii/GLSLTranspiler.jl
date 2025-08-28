@@ -173,8 +173,15 @@ function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTRefTag}, ctx::TICo
 
     idx = node.children[2].original[]
 
+    if idx isa QuoteNode
+        idx = idx.value
+    end
+
     if idx isa Symbol
         idx = string(idx)
+
+        node.children[2].original = Ref(idx)
+        node.children[2].type = ASTString
     end
 
     if idx isa String
