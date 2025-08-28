@@ -6,6 +6,7 @@ Pkg.activate(@__DIR__)
 
 using GLSLTranspiler
 using GLSLTranspiler.GLSL
+using JuliaGLM
 
 some_global = 2
 some_other_global = 3
@@ -64,12 +65,6 @@ end
 
 i = 0
 j = 1
-
-const Vec2 = GLSLTranspiler.Vec2
-const Vec3 = GLSLTranspiler.Vec3
-const Vec4 = GLSLTranspiler.Vec4
-const IVec2 = GLSLTranspiler.Vec2T{Int32}
-const IntVec3 = GLSLTranspiler.Vec3T{Int32}
 
 @skip @transpile(
     GLSLTranspiler.GLSL.glsl_pipeline,
@@ -187,36 +182,86 @@ const IntVec3 = GLSLTranspiler.Vec3T{Int32}
     true
 )
 
-@transpile(
+code = @transpile(
     GLSLTranspiler.GLSL.glsl_pipeline,
     function sdf_disk(
         @out(frag_col::Vec4),
         @uniform(mouse::Vec4),
         @uniform(resolution::IVec2)
     )
-        p = (2.0f0 .* gl_FragCoord["xy"] .- resolution["xy"]) ./ resolution["y"]
-        m = (2.0f0 .* mouse["xy"] .- resolution["xy"]) ./ resolution["y"]
+        # TODO symbol swizzle (:xy)
+        p = (2.0 * gl_FragCoord["xy"] .- resolution["xy"]) ./ resolution["y"]
+        m = (2.0 * mouse["xy"] .- resolution["xy"]) ./ resolution["y"]
 
-        d = length(p) - 0.5f0
+        # src/Dependents/curve.jl
+        # src/Dependents/surface.jl
+        # sync upload
+
+        d = length(p) - 0.5
 
         local col
-        if d > 0.0f0
-            col = Vec3(0.9f0, 0.6f0, 0.3f0)
+        if d > 0.0
+            col = Vec3(0.9, 0.6, 0.3)
         else
-            col = Vec3(0.65f0, 0.85f0, 1.0f0)
+            col = Vec3(0.65, 0.85, 1.0)
         end
 
-        col *= 1.0f0 - exp(-6.0f0 * abs(d))
-        col *= 0.8f0 + 0.2f0 * cos(150f0 * d)
-        col = mix(col, Vec3(1), 1.0f0 - smoothstep(0.0f0, 0.01f0, abs(d)))
+        col *= 1.0 - exp(-6.0 * abs(d))
+        col *= 0.8 + 0.2 * cos(150 * d)
+        col = mix(col, Vec3(1), 1.0 - smoothstep(0.0, 0.01, abs(d)))
 
-        if (mouse["z"] > 0.001f0)
-            d = length(m) - 0.5f0
-            col = mix(col, Vec3(1, 1, 0), 1.0f0 - smoothstep(0.0f0, 0.005f0, abs(length(p .- m) - abs(d)) - 0.0025f0))
-            col = mix(col, Vec3(1, 1, 0), 1.0f0 - smoothstep(0.0f0, 0.005f0, length(p .- m) - 0.015f0))
+        if (mouse["z"] > 0.001)
+            d = length(m) - 0.5
+            col = mix(col, Vec3(1, 1, 0), 1.0 - smoothstep(0.0, 0.005, abs(length(p .- m) - abs(d)) - 0.0025))
+            col = mix(col, Vec3(1, 1, 0), 1.0 - smoothstep(0.0, 0.005, length(p .- m) - 0.015))
         end
 
-        frag_col = Vec4(col, 1.0f0)
+        frag_col = Vec4(col, 1.0)
+    end,
+    false
+)
+
+println(code)
+
+# GLSLTranspiler.transpiler_config.literals_as_f32 = false
+
+code = @transpile(
+    GLSLTranspiler.GLSL.glsl_pipeline,
+    function test_shader(@in(a::Float32))
+        x = 2
+
+        smoothstep(2.0f0, 2.0f0, vec3(0))
+
+        f = JuliaGLM.dot(vec3(0), vec3(1))
+
+        f32 = 2.0
+        f64 = Float64(2.0)
+
+        if x > 3
+            x += 3
+        end
+
+        while x < 0
+            x = 3
+        end
+    end,
+    false
+)
+
+println(code)
+
+@skip @transpile(
+    GLSLTranspiler.GLSL.glsl_pipeline,
+    function range_test()
+        acc = 0
+        n = 5
+        for i in 1:n
+            acc += i
+        end
+
+        while n > 10
+            acc += n
+        end
     end,
     true
 )

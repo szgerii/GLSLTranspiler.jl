@@ -1,4 +1,4 @@
-export get_param_names
+export get_param_names, resolve_module_chain
 
 function get_param_names(f::Expr)::Vector{Symbol}
     params = Vector{Symbol}()
@@ -15,4 +15,23 @@ function get_param_names(f::Expr)::Vector{Symbol}
     end
 
     params
+end
+
+function resolve_module_chain(expr::Expr, mod::Module)
+    @assert expr.head == :(.)
+    @assert length(expr.args) == 2
+    @assert expr.args[2] isa QuoteNode
+
+    if expr.args[1] isa Symbol
+        @assert isdefined(mod, expr.args[1])
+
+        base_mod = getfield(mod, expr.args[1])
+    else
+        base_mod = resolve_module_chain(expr.args[1], mod)
+    end
+
+    @assert base_mod isa Module
+    @assert isdefined(base_mod, expr.args[2].value)
+
+    getfield(base_mod, expr.args[2].value)
 end

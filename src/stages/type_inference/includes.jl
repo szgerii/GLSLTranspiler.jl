@@ -1,10 +1,12 @@
 module TypeInference
 
 using ..GLSLTranspiler
-using ..GLSLTranspiler.BaseTypes
-using ..GLSLTranspiler.ScopeDiscovery
-using ..GLSLTranspiler.SymbolResolution
+using ..BaseTypes
+using ..Utils
+using ..ScopeDiscovery
+using ..SymbolResolution
 using Tagger
+using JuliaGLM
 
 include("types/TASTNodeTypes.jl")
 include("types/TypedUniqueSymbol.jl")

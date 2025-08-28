@@ -1,5 +1,6 @@
 import ...GLSLTranspiler
 using ...GLSLTranspiler.TypeInference
+using JuliaGLM
 
 export GLSLPipelineContext
 
@@ -27,8 +28,8 @@ function remove_env_sym_decls!(f::Expr, pipeline_ctx::GLSLPipelineContext)
 end
 
 const gl_vars = [
-    (:gl_Position, GLSLTranspiler.Vec4),
-    (:gl_FragCoord, GLSLTranspiler.Vec4)
+    (:gl_Position, Vec4),
+    (:gl_FragCoord, Vec4)
 ]
 
 BaseTypes.init_pipeline_ctx(::Type{GLSLPipelineContext}) = GLSLPipelineContext(missing, deepcopy(gl_vars), remove_env_sym_decls!)

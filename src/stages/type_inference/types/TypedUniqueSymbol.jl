@@ -12,3 +12,5 @@ end
 
 Base.string(usym::TypedUniqueSymbol) = string(usym.id) * " ($(usym.type))"
 Base.show(io::IO, usym::TypedUniqueSymbol) = print(io, string(usym))
+
+precomp_union_types(Union{ASTValueType,ASTFunction}, TypedUniqueSymbol, (UniqueSymbol, missing), true)

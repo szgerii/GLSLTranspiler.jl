@@ -90,3 +90,9 @@ function gen_typed_ast(node::ScopedASTNode, ::Type{LiteralTag}, _::TIContext)::T
 
     TypedASTNode(node, tast_type)
 end
+
+function gen_typed_ast(node::ScopedASTNode, ::Type{QuoteNodeTag}, _::TIContext)::TypedASTNode
+    TypedASTNode(node, ASTVoidSym)
+end
+
+precomp_subtypes(ScopedASTTypeTag, gen_typed_ast, (ScopedASTNode, missing, TIContext))

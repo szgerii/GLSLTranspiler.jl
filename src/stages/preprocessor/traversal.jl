@@ -20,4 +20,9 @@ function preprocess_traverse(node::Expr, mod::Module)::Vector{ASTNode}
     preprocess_transform(tag_match(PreTag, node), node, mod)
 end
 
+preprocess_traverse(node::Float64, _::Module)::Vector{ASTNode} =
+    [GLSLTranspiler.transpiler_config.literals_as_f32 ? convert(Float32, node) : node]
+
 preprocess_traverse(node::ASTNode, _::Module)::Vector{ASTNode} = [node]
+
+precomp_union_types(ASTNode, preprocess_traverse, (missing, Module))

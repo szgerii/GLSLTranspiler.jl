@@ -83,3 +83,5 @@ function glsl_ast_string(node::GLSLASTNode, indent=0)::String
 
     output
 end
+
+precomp_subtypes(GLSLASTNode, glsl_ast_string, (missing, Int), false)

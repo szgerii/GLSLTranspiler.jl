@@ -15,7 +15,7 @@ function id_chain_string(id_chain::IDChain, selected_idx)
     pre * selected * post
 end
 
-@enum ScopeType ModuleScope HardScope SoftScope
+@enum ScopeType ModuleScope HardScope SoftScope LoopDeclScope
 
 struct Scope <: AbstractTree
     id_chain::IDChain

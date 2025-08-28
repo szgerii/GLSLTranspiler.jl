@@ -29,21 +29,38 @@ function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTAssignmentTag}, ct
     node.type = rhs.type
 end
 
+function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTModuleResolveTag}, ctx::TIContext)
+    @assert node.children[1].type == ASTModule
+
+    target = resolve_module_chain(node.original[], ctx.defining_module)
+    src_type = ctx.defining_module.eval(:(typeof($target)))
+    tast_type = to_tast(src_type)
+
+    node.type = tast_type
+end
+
 function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTCallTag}, ctx::TIContext)
     fsym = node.children[1]
     args = node.children[2:end]
 
-    arg_types = map(arg -> arg.type, args)
-    ret = env_fn_ret(ctx.pipeline_ctx, Val(fsym.original[]), arg_types...)
-    if !ismissing(ret)
-        @assert ret <: ASTType "Invalid return type for environment function $(fsym.original[]) called with args $(arg_types)"
+    @assert fsym.original[] isa Symbol || (fsym.original[] isa Expr && fsym.original[].head == :(.))
 
-        node.type = ret
+    sym_ref = fsym.original[] isa Symbol
 
-        return
+    if sym_ref
+        arg_types = map(arg -> arg.type, args)
+        ret = env_fn_ret(ctx.pipeline_ctx, Val(fsym.original[]), arg_types...)
+        if !ismissing(ret)
+            @assert ret <: ASTType "Invalid return type for environment function $(fsym.original[]) called with args $(arg_types)"
+
+            node.type = ret
+
+            return
+        end
     end
 
     first_arg_idx = 1
+
     if fsym.original[] == :broadcast
         @assert args[1].type == ASTFunction
         first_arg_idx = 2
@@ -60,12 +77,12 @@ function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTCallTag}, ctx::TIC
         end
     end
 
-    if !isdefined(ctx.defining_module, fsym.original[])
+    if sym_ref && !isdefined(ctx.defining_module, fsym.original[])
         ast_error(node.original[],
             "Couldn't find function '$(fsym.original[])' in the definition's module or in the environment function list.")
     end
 
-    f = getfield(ctx.defining_module, fsym.original[])
+    f = sym_ref ? getfield(ctx.defining_module, fsym.original[]) : resolve_module_chain(fsym.original[], ctx.defining_module)
     args_tuple = Tuple(map(arg -> to_ast(arg.type), args[first_arg_idx:end]))
 
     if fsym.original[] == :broadcast
@@ -155,6 +172,11 @@ function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTRefTag}, ctx::TICo
     el_count = elcount(node.children[1].type)
 
     idx = node.children[2].original[]
+
+    if idx isa Symbol
+        idx = string(idx)
+    end
+
     if idx isa String
         # swizzle
         swizzle_group = nothing
@@ -201,3 +223,5 @@ function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTRefTag}, ctx::TICo
             "Invalid index type provided for vector indexing: $(node.children[2].type)")
     end
 end
+
+precomp_subtypes(TASTNodeTag, infer_typed_ast_node!, (TypedASTNode, missing, TIContext))

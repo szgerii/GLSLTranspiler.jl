@@ -22,6 +22,8 @@ end
 
 GLSLLiteral(value::ASTLiteral) = GLSLLiteral(value, to_glsl_type(TypeInference.to_tast(typeof(value))))
 
+precomp_union_types(ASTLiteral, GLSLLiteral, (missing,))
+
 @exported abstract type AbstractGLSLSymbol <: GLSLASTNode end
 
 @exported struct GLSLSymbol <: AbstractGLSLSymbol
@@ -65,6 +67,8 @@ end
     swizzle::String
 end
 
+precomp_subtypes(GLSLASTNode, GLSLSwizzle, (missing, String))
+
 @exported struct GLSLAssignment <: GLSLASTNode
     lhs::Union{GLSLSymbol,GLSLSwizzle}
     rhs::GLSLASTNode
@@ -80,7 +84,9 @@ end
     args::Vector{GLSLASTNode}
 end
 
-GLSLCall(fn_name::Union{GLSLSymbol,GLSLTypeSymbol}, args::Vararg{GLSLASTNode}) = GLSLCall(fn_name, [args...])
+GLSLCall(fn_name::AbstractGLSLSymbol, args::Vararg{GLSLASTNode}) = GLSLCall(fn_name, [args...])
+
+precomp_subtypes(AbstractGLSLSymbol, GLSLCall, (missing, Vararg{GLSLASTNode}), false)
 
 @exported struct GLSLReturn <: GLSLASTNode
     body::Union{GLSLASTNode,Nothing}
@@ -109,3 +115,17 @@ end
     condition::GLSLASTNode
     body::GLSLBlock
 end
+
+using InteractiveUtils
+
+function precompile_glsl_ast(supertype=GLSLASTNode)
+    for subtype in subtypes(supertype)
+        if isabstracttype(subtype)
+            precompile_glsl_ast(subtype)
+        elseif isconcretetype(subtype)
+            precompile(subtype, fieldtypes(subtype))
+        end
+    end
+end
+
+precompile_glsl_ast()

@@ -13,6 +13,8 @@ export ASTValueType, GLM_EL_VEC_TYPES, elcount, get_ast_vec_type
 @exported struct ASTBool <: ASTType end
 @exported struct ASTChar <: ASTType end
 @exported struct ASTString <: ASTType end
+@exported struct ASTModule <: ASTType end
+@exported struct ASTSymbol <: ASTType end
 
 @exported abstract type ASTVec <: ASTType end
 
@@ -28,6 +30,7 @@ const GLM_EL_VEC_TYPES = [
 ]
 
 get_ast_vec_type(::Type{T}, n::Int) where T = get_ast_vec_type(T, Val(n))
+precomp_union_types(Union{Float32,Float64,Int32,UInt32,Bool}, get_ast_vec_type, (missing, Int), true)
 
 vec_type_syms = []
 for (suffix, el_type) in GLM_EL_VEC_TYPES
@@ -40,6 +43,7 @@ for (suffix, el_type) in GLM_EL_VEC_TYPES
         @eval Base.eltype(::Type{$sym}) = $el_type
         @eval elcount(::Type{$sym}) = $n
         @eval get_ast_vec_type(::Type{$el_type}, _::Val{$n}) = $sym
+        #precompile(get_ast_vec_type, (Type{el_type}, Val{n}))
 
         @assert isdefined(@__MODULE__, sym)
 
@@ -112,12 +116,13 @@ to_tast(::Type{DataType}) = ASTFunction
 @define_tast_bijection Char ASTChar
 @define_tast_bijection String ASTString
 @define_tast_bijection Nothing ASTVoid
+@define_tast_bijection Module ASTModule
 
 for n in 2:4
     for (suffix, el_type) in GLM_EL_VEC_TYPES
         ast_vec_sym = Symbol("Vec", n, "T")
         tast_vec_sym = Symbol("ASTVec", n, suffix)
-        @eval @define_tast_bijection GLSLTranspiler.$ast_vec_sym{$el_type} $tast_vec_sym
+        @eval @define_tast_bijection $ast_vec_sym{$el_type} $tast_vec_sym
     end
 end
 

@@ -18,8 +18,13 @@ function sd_traverse(node::Expr, ctx::SDContext)::ScopedASTNode
 
     if should_lower
         body = scoped_node.children[2].original[]
-
         @assert body isa Expr && body.head == :block
+
+        if node.head == :for
+            loop_decl_scope = Scope(old_scope, LoopDeclScope)
+            scoped_node.children[1].has_own_scope = true
+            scoped_node.children[1].scope = Ref(loop_decl_scope)
+        end
 
         scoped_node.children[2].has_own_scope = true
         scoped_node.children[2].scope = scoped_node.scope
@@ -27,11 +32,12 @@ function sd_traverse(node::Expr, ctx::SDContext)::ScopedASTNode
         scoped_node.has_own_scope = false
         scoped_node.scope = old_scope
 
+        target_scope = node.head == :for ? scoped_node.children[1].scope : old_scope
         trav_queue = [scoped_node.children[1]]
         while !isempty(trav_queue)
             current = popfirst!(trav_queue)
 
-            current.scope = old_scope
+            current.scope = target_scope
 
             for child in current.children
                 push!(trav_queue, child)
@@ -49,3 +55,5 @@ function sd_traverse(node::Expr, ctx::SDContext)::ScopedASTNode
 end
 
 sd_traverse(node::Union{Symbol,ASTNode}, ctx::SDContext)::ScopedASTNode = ScopedASTNode(Ref(node), ctx.current_scope)
+
+precomp_union_types(Union{Symbol,ASTNode}, sd_traverse, (missing, SDContext))

@@ -2,7 +2,7 @@
 
 julia_version = "1.11.6"
 manifest_format = "2.0"
-project_hash = "ef3a76e812b494d85e7fab162ff2f54dff119ed9"
+project_hash = "be01deb7479fa717029068c73a5593d8fc6fc213"
 
 [[deps.ArgTools]]
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
@@ -39,6 +39,12 @@ version = "1.11.0"
 deps = ["Markdown"]
 uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 version = "1.11.0"
+
+[[deps.JuliaGLM]]
+deps = ["LinearAlgebra", "StaticArrays"]
+path = "C:\\Users\\szucs\\szakgyak\\JuliaGLM"
+uuid = "d62f3426-b328-4065-b1cd-fa40c3c5e4f7"
+version = "0.0.0"
 
 [[deps.LibCURL]]
 deps = ["LibCURL_jll", "MozillaCACerts_jll"]
@@ -168,9 +174,7 @@ version = "1.0.3"
 
 [[deps.Tagger]]
 deps = ["Test"]
-git-tree-sha1 = "14aa7b9454ee533ba1c263e00eedb5270bd253ff"
-repo-rev = "main"
-repo-url = "git@github.com:szgerii/Tagger.jl.git"
+path = "C:\\Users\\szucs\\.julia\\dev\\Tagger"
 uuid = "733a735c-17b3-4329-8b81-ea0597397936"
 version = "0.0.5"
 

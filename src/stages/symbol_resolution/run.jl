@@ -1,5 +1,3 @@
-using Logging
-
 const SymResStageReturn = Tuple{ScopedASTNode,Ref{Scope},Vector{UniqueSymbol},ScopedUSymMapping}
 
 function run_sr(mod::Module, pipeline_ctx::PipelineContext, scoped_ast::ScopedASTNode, root_scope::Ref{Scope})::SymResStageReturn

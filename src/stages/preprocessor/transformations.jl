@@ -90,3 +90,11 @@ end
 function preprocess_transform(::Type{PrefixNegPreTag}, node::Expr, _::Module)::Vector{ASTNode}
     [Expr(:call, :*, -1, node)]
 end
+
+precomp_subtypes(PreTag, preprocess_transform, (missing, Expr, Module))
+
+#using InteractiveUtils
+
+#for T in subtypes(PreTag)
+#    precompile(preprocess_transform, (Type{T}, Expr, Module))
+#end

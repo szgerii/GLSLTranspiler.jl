@@ -1,6 +1,8 @@
 module Preprocessor
 
-using ..GLSLTranspiler.BaseTypes
+import ..GLSLTranspiler
+using ..BaseTypes
+using ..Utils
 using Tagger
 
 include("rules.jl")

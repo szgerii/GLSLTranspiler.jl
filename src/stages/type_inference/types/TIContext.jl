@@ -42,3 +42,5 @@ function add_type!(ctx::TIContext, usym_id::Symbol, ::Type{T}) where {T<:ValidUS
 end
 
 add_type!(ctx::TIContext, usym::UniqueSymbol, ::Type{T}) where {T<:ValidUSymType} = add_type!(ctx, usym.id, T)
+
+precomp_union_types(ValidUSymType, add_type!, (TIContext, Symbol, missing), true)

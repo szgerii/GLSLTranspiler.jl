@@ -1,6 +1,7 @@
 module ScopeDiscovery
 
-using ..GLSLTranspiler.BaseTypes
+using ..BaseTypes
+using ..Utils
 using Tagger
 
 include("types/Scope.jl")

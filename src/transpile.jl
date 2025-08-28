@@ -17,6 +17,8 @@ end
 function run_pipeline(pipeline::Pipeline, f::Expr, mod::Module; verbose::Bool=false)::Tuple{Expr,Any}
     Base.remove_linenums!(f)
 
+    println("Transpiling...")
+
     if verbose
         println("Running '$(pipeline.name)' pipeline...\n")
 

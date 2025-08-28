@@ -61,12 +61,16 @@ add_mapping!(ctx::SRContext, sym::Symbol, scope::Ref{Scope}, usym::UniqueSymbol)
 function find_usym_in_parents(sym::Symbol, id_chain::IDChain, ctx::SRContext)::Union{UniqueSymbol,Nothing}
     for (_, usym) in ctx.usyms
         if sym == usym.original_sym &&
-           (id_chain == usym.def_scope_id || is_parent_of(id_chain, usym.def_scope_id))
+           (id_chain == usym.def_scope_id || is_parent_of(usym.def_scope_id, id_chain))
             return usym
         end
     end
 
     return nothing
+
+    #=
+
+    # OLD PARENT RESOLUTION LOGIC
 
     # go upwards the scope tree, excluding the global scope
     for i in length(id_chain):-1:1
@@ -79,6 +83,7 @@ function find_usym_in_parents(sym::Symbol, id_chain::IDChain, ctx::SRContext)::U
     end
 
     return nothing
+    =#
 end
 
 find_usym_in_parents(sym::Symbol, scope::Ref{Scope}, ctx::SRContext) = find_usym_in_parents(sym, scope[].id_chain, ctx)

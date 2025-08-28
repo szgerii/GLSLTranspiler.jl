@@ -1,17 +1,12 @@
-function transform_children!(state::GLSLTransformState, ctx::GTContext, first::Int=1, last::Int=-1)
-    tnode = state.typed_node
-
-    n = length(tnode.children)
-    if last == -1
-        last = n
+function transform_children!(
+    state::GLSLTransformState, ctx::GTContext, first::Int=1, last::Int=length(state.typed_node.children);
+    init_children::Bool=true
+)
+    if init_children
+        state.children = Vector{GLSLTransformState}(undef, length(state.typed_node.children))
     end
 
-    state.children = Vector{GLSLTransformState}(undef, last - first + 1)
-
-    # n = last - first + 1
-    # f(1) = first
-    # f(n) = last
-    for (i, child) in enumerate(tnode.children[first:last])
+    for (i, child) in enumerate(state.typed_node.children[first:last])
         idx = first + i - 1
 
         child_state = GLSLTransformState(child)
@@ -25,6 +20,10 @@ glsl_transform!(state::GLSLTransformState, ctx::GTContext) =
     glsl_transform!(state, tag_match(ASTConstructTag, state.typed_node), ctx)
 
 function glsl_transform!(state::GLSLTransformState, ::Type{DefaultTag}, ctx::GTContext)
+    if state.original[] isa Expr && state.original[].head == :(.)
+        return
+    end
+
     println("Found untagged node:")
     println(tree_node_string(state.typed_node))
 end
@@ -55,7 +54,28 @@ function glsl_transform!(state::GLSLTransformState, ::Type{AssignmentTag}, ctx::
 end
 
 function glsl_transform!(state::GLSLTransformState, ::Type{CallTag}, ctx::GTContext)
+    name_expr = state.original[].args[1]
+    is_outside_fn = false
+
+    if name_expr isa Expr && name_expr.head == :(.)
+        f = resolve_module_chain(name_expr, ctx.defining_module)
+
+        if parentmodule(f) != JuliaGLM
+            ast_error(name_expr, "Invalid outside function access: trying to call function $f, which is not a part of the JuliaGLM module")
+        end
+
+        is_outside_fn = true
+    end
+
     transform_children!(state, ctx)
+
+    if is_outside_fn
+        fstate = GLSLTransformState(state.typed_node.children[1])
+        fstate.glsl_node = GLSLSymbol(nameof(f))
+
+        state.children[1] = fstate
+        #insert!(state.children, 1, fstate)
+    end
 
     @assert !isempty(state.children)
     @assert state.children[1].glsl_node isa GLSLSymbol
@@ -224,3 +244,5 @@ function glsl_transform!(state::GLSLTransformState, ::Type{IndexerTag}, ctx::GTC
 
     state.glsl_node = GLSLSwizzle(state.children[1].glsl_node, "xyzw"[idx] |> string)
 end
+
+precomp_subtypes(ASTConstructTag, glsl_transform!, (GLSLTransformState, missing, GTContext))

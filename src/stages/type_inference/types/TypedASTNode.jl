@@ -17,6 +17,8 @@ end
 TypedASTNode(base::ScopedASTNode, ::Type{T}) where {T<:ASTType} =
     TypedASTNode(Vector{TypedASTNode}(), base.original, base.scope, base.has_own_scope, T)
 
+precomp_subtypes(ASTType, TypedASTNode, (ScopedASTNode, missing))
+
 TypedASTNode(base::ScopedASTNode) = TypedASTNode(base, ASTVoid)
 
 GLSLTranspiler.tree_node_string(node::TypedASTNode) = "[$(node.type)]\n" * GLSLTranspiler.tree_node_string(node.original[])

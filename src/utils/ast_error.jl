@@ -16,6 +16,8 @@ function ast_string(ex::Expr)
             str *= ast_string(arg)
         end
     end
+
+    str
 end
 
 ast_string(sym::Symbol) = ":$sym"

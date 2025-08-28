@@ -1,7 +1,7 @@
 module SymbolResolution
 
-using ..GLSLTranspiler.BaseTypes
-using ..GLSLTranspiler.ScopeDiscovery
+using ..BaseTypes
+using ..ScopeDiscovery
 using Tagger
 
 include("types/UniqueSymbol.jl")
