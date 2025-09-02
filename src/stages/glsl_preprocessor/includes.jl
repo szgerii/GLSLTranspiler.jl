@@ -1,10 +1,13 @@
 module GLSLPreprocessor
 
+import JuliaGLM
 using ....GLSLTranspiler
-using ....GLSLTranspiler.GLSL
-using ....GLSLTranspiler.BaseTypes
-using ....GLSLTranspiler.SymbolResolution
+using ..GLSL
+using ....BaseTypes
+using ....Utils
+using ....SymbolResolution
 
+include("traversal.jl")
 include("run.jl")
 
 const GLSLPreprocessorStage =

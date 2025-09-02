@@ -61,7 +61,8 @@ end
 @exported struct ASTVoidSym <: ASTType end
 
 Base.string(::Type{T}) where {T<:ASTType} = string(nameof(T))
-Base.show(io::IO, ::Type{T}) where {T<:ASTType} = print(io, string(nameof(T)))
+Base.show(io::IO, ::Type{T}) where {T<:ASTType} =
+    !(T isa Union) ? print(io, string(nameof(T))) : invoke(Base.show, Tuple{IO,Union}, io, T)
 
 const tast_value_types =
     [ASTInt32, ASTInt64, ASTUInt32, ASTUInt64, ASTFloat32, ASTFloat64, ASTBool, ASTChar, ASTString, vec_type_syms...]
@@ -91,18 +92,6 @@ to_tast(::Type{T}) where T = error("Found value of unsupported type: ", T)
 to_tast(::Type{T}) where {T<:ASTLiteral} = nothing
 to_tast(::Type{<:Function}) = ASTFunction
 
-to_tast(::Type{UnitRange{T}}) where T = ASTRange{to_tast(T)}
-to_tast(::Type{StepRange{T,T}}) where T = ASTRange{to_tast(T)}
-function to_tast(::Type{StepRange{T,S}}) where {T,S}
-    type = promote_type(T, S)
-
-    if !isconcretetype(type)
-        error("Cannot transpile step ranges whose element and spacing types cannot be promoted to a single type using promote_type")
-    end
-
-    to_tast(StepRange{type,type})
-end
-
 # type constructors like Int64(...)
 to_tast(::Type{DataType}) = ASTFunction
 
@@ -125,7 +114,3 @@ for n in 2:4
         @eval @define_tast_bijection $ast_vec_sym{$el_type} $tast_vec_sym
     end
 end
-
-#@define_tast_bijection GLSLTranspiler.Vec2T{Float32} ASTVec2
-#@define_tast_bijection GLSLTranspiler.Vec3T{Float32} ASTVec3
-#@define_tast_bijection GLSLTranspiler.Vec4T{Float32} ASTVec4

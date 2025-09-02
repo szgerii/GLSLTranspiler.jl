@@ -6,7 +6,7 @@ Pkg.activate(@__DIR__)
 
 using GLSLTranspiler
 using GLSLTranspiler.GLSL
-using JuliaGLM
+#using JuliaGLM
 
 some_global = 2
 some_other_global = 3
@@ -182,7 +182,7 @@ j = 1
     true
 )
 
-code = @transpile(
+@skip code = @transpile(
     GLSLTranspiler.GLSL.glsl_pipeline,
     function sdf_disk(
         @out(frag_col::Vec4),
@@ -191,10 +191,6 @@ code = @transpile(
     )
         p = (2.0 * gl_FragCoord[:xy] .- resolution["xy"]) ./ resolution["y"]
         m = (2.0 * mouse["xy"] .- resolution["xy"]) ./ resolution["y"]
-
-        # src/Dependents/curve.jl
-        # src/Dependents/surface.jl
-        # sync upload
 
         d = length(p) - 0.5
 
@@ -220,16 +216,23 @@ code = @transpile(
     false
 )
 
-println(code)
+#println(code)
 
-# GLSLTranspiler.transpiler_config.literals_as_f32 = false
+#GLSLTranspiler.transpiler_config.literals_as_f32 = false
 
-@skip code = @transpile(
+using JuliaGLM
+
+# TODO: first line locals conflict with env syms (if e.g. x::Int32)
+# TODO: type decls like local x::Int32
+code = @transpile(
     GLSLTranspiler.GLSL.glsl_pipeline,
-    function test_shader(@in(a::Float32))
+    function test_shader(@in(a::Float32), @out(col::Vec4))
         x = 2
 
-        smoothstep(2.0f0, 2.0f0, vec3(0))
+        s = JuliaGLM.smoothstep(2.0, 2.0, vec3(0))
+        v2 = dFdx(vec2(0))
+        v3 = dFdy(vec3(1))
+        f1 = dFdy(1.0)
 
         f = JuliaGLM.dot(vec3(0), vec3(1))
 
@@ -237,7 +240,7 @@ println(code)
         f64 = Float64(2.0)
 
         if x > 3
-            x += 3
+            x = x + 3
         end
 
         while x < 0
@@ -247,7 +250,7 @@ println(code)
     false
 )
 
-# println(code)
+println(code)
 
 @skip @transpile(
     GLSLTranspiler.GLSL.glsl_pipeline,

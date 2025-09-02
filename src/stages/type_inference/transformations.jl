@@ -49,7 +49,7 @@ function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTCallTag}, ctx::TIC
 
     if sym_ref
         arg_types = map(arg -> arg.type, args)
-        ret = env_fn_ret(ctx.pipeline_ctx, Val(fsym.original[]), arg_types...)
+        ret = builtin_fn_ret_type(ctx.pipeline_ctx, Val(fsym.original[]), arg_types...)
         if !ismissing(ret)
             @assert ret <: ASTType "Invalid return type for environment function $(fsym.original[]) called with args $(arg_types)"
 

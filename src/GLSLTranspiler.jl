@@ -2,6 +2,8 @@ module GLSLTranspiler
 
 using Tagger
 
+include("utils/type_utils.jl")
+
 # Base Types
 include("types/includes.jl")
 
@@ -15,7 +17,6 @@ end
 
 include("utils/ast_error.jl")
 include("utils/tree_print.jl")
-include("utils/type_utils.jl")
 include("utils/expr_utils.jl")
 include("utils/type_from_ast.jl")
 include("utils/skip.jl")

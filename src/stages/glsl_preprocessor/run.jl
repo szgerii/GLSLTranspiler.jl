@@ -2,13 +2,11 @@ import ....GLSLTranspiler: type_from_ast
 import ....GLSLTranspiler.SymbolResolution
 import ....GLSLTranspiler.TypeInference: ASTValueType
 
-is_expr_with_head(ex, head::Symbol) = ex isa Expr && ex.head == head
-
 function run_glsl_preprocessor(mod::Module, pipeline_ctx::GLSLPipelineContext, ast::Expr)
     @assert ast.head == :function
 
     fdecl = ast.args[1]
-    @assert fdecl.head == :call
+    @assert fdecl isa Expr && fdecl.head == :call
 
     shader_ctx = GLSLShaderContext()
 
@@ -50,6 +48,11 @@ function run_glsl_preprocessor(mod::Module, pipeline_ctx::GLSLPipelineContext, a
     for env_sym in get_env_syms(pipeline_ctx)
         pushfirst!(ast.args[2].args, :(local $env_sym))
     end
+
+    fbody = ast.args[2]
+    @assert fbody isa Expr && fbody.head == :block
+
+    glsl_preprocess!(fbody, mod)
 
     ast
 end

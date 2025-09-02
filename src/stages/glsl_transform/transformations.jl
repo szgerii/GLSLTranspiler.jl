@@ -1,3 +1,5 @@
+using ....GLSLTranspiler: ast_error
+
 function transform_children!(
     state::GLSLTransformState, ctx::GTContext, first::Int=1, last::Int=length(state.typed_node.children);
     init_children::Bool=true

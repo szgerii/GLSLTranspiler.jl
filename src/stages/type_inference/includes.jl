@@ -8,6 +8,12 @@ using ..SymbolResolution
 using Tagger
 using JuliaGLM
 
+#! format: off
+public builtin_fn_ret_type
+#! format: on
+
+builtin_fn_ret_type(::PipelineContext, ::Val{T}, args...) where T = missing
+
 include("types/TASTNodeTypes.jl")
 include("types/TypedUniqueSymbol.jl")
 include("types/TypedASTNode.jl")
