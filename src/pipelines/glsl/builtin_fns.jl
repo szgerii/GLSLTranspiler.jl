@@ -1,13 +1,20 @@
 import .TypeInference
-using ..GLSLTranspiler: unwrap_union
+using ..GLSLTranspiler
 
-const VecTypes = Union{ASTVecNF,ASTVecND,ASTVecNI,ASTVecNB,ASTVecNU}
+const GLCtx = GLSLPipelineContext
 
 const GenFType = Union{ASTVecNF,ASTFloat32}
 const GenDType = Union{ASTVecND,ASTFloat64}
 const GenIType = Union{ASTVecNI,ASTInt32}
 const GenUType = Union{ASTVecNU,ASTUInt32}
 const GenBType = Union{ASTVecNB,ASTBool}
+
+const VecTypes = Union{ASTVecNF,ASTVecND,ASTVecNI,ASTVecNB,ASTVecNU}
+
+const MatTypes = Union{ASTMatNxMF,ASTMatNxMD}
+const SquareMatTypes = Union{ASTMat2x2F,ASTMat3x3F,ASTMat4x4F,ASTMat2x2D,ASTMat3x3D,ASTMat4x4D}
+
+# Utils for fn definition generation
 
 is_gen_type(::Type{T}) where T = any(GenType -> GenType <: T, [GenFType, GenDType, GenIType, GenUType, GenBType])
 is_gen_type(::Type{T}) where {T<:ASTVec} = isabstracttype(T)
@@ -35,16 +42,18 @@ function specialize_union(::Type{T}, n::Int) where T
     Union{map(gen_type -> specialize_gen_type(gen_type, Val(n)), sub_types)...}
 end
 
+# Utils for defining signatures in the dictionary
+
 fill_tuple(x, n::Int) = ntuple(_ -> x, n)
 
-map_signature(syms::Vector{Symbol}, sig) =
+repeat_signature(syms::Vector{Symbol}, sig) =
     [fsym => sig for fsym in syms]
 
 # GLSL built-in functions with format:
 # fn_name => ([param1, param2, ...,] ret_type)
 const GLSL_BUILTIN_FNS = Dict(
     # Angle and Trigonometry Functions (8.1)
-    map_signature([
+    repeat_signature([
             :radians, :degrees,
             :sin, :cos, :tan,
             :asin, :acos,
@@ -58,12 +67,12 @@ const GLSL_BUILTIN_FNS = Dict(
 
     # Exponential Functions (8.2)
     :pow => (GenFType, GenFType, GenFType),
-    map_signature([:exp, :log, :exp2, :log2], (GenFType, GenFType))...,
+    repeat_signature([:exp, :log, :exp2, :log2], (GenFType, GenFType))...,
     :sqrt => fill_tuple(Union{GenFType,GenDType}, 2),
     :inversesqrt => fill_tuple(Union{GenFType,GenDType}, 2),
 
     # Common Functions (8.3)
-    map_signature([
+    repeat_signature([
             :abs, :sign,
             :floor, :trunc, :ceil, :fract,
             :round, :roundEven,
@@ -74,7 +83,7 @@ const GLSL_BUILTIN_FNS = Dict(
         (GenDType, ASTFloat64, GenDType)
     ],
     :modf => (Union{GenFType,GenDType}, Ref{Union{GenFType,GenDType}}, Union{GenFType,GenDType}),
-    map_signature([:min, :max], [
+    repeat_signature([:min, :max], [
         fill_tuple(Union{GenFType,GenDType,GenIType,GenUType}, 3),
         (GenFType, ASTFloat32, GenFType),
         (GenDType, ASTFloat64, GenDType),
@@ -155,10 +164,11 @@ const GLSL_BUILTIN_FNS = Dict(
     ],
 
     # Matrix Functions (8.6)
-    # TODO (mat types)
+    # These are defined separately below
+    # Adding support for generic matrix type resolutions felt overkill for these 5 fns
 
     # Vector Relational Functions (8.7)
-    map_signature(
+    repeat_signature(
         [:lessThan, :lessThanEqual, :greaterThan, :greaterThanEqual],
         (fill_tuple(Union{ASTVecNF,ASTVecNI,ASTVecNU}, 2)..., ASTVecNB)
     )...,
@@ -193,7 +203,7 @@ const GLSL_BUILTIN_FNS = Dict(
     # TODO (atomic_uint)
 
     # Atomic Memory Functions (8.11)
-    map_signature([
+    repeat_signature([
             :atomicAdd, :atomicMin, :atomicMax,
             :atomicAnd, :atomicOr, :atomicXor,
             :atomicExchange
@@ -216,7 +226,7 @@ const GLSL_BUILTIN_FNS = Dict(
     :EndPrimitive => (ASTVoid,),
 
     # Fragment Processing Functions (8.14)
-    map_signature([
+    repeat_signature([
             :dFdx, :dFdxFine, :dFdxCoarse,
             :dFdy, :dFdyFine, :dFdyCoarse,
             :fwidth, :fwidthFine, :fwidthCoarse,
@@ -235,7 +245,7 @@ const GLSL_BUILTIN_FNS = Dict(
     :barrier => (ASTVoid,),
 
     # Shader Memory Control Functions (8.17)
-    map_signature([
+    repeat_signature([
             :memoryBarrier,
             :memoryBarrierAtomicCounter,
             :memoryBarrierBuffer,
@@ -248,13 +258,41 @@ const GLSL_BUILTIN_FNS = Dict(
     # TODO
 
     # Shader Invocation Group Functions (8.19)
-    map_signature([:anyInvocation, :allInvocations, :allInvocationsEqual], (ASTBool, ASTBool))...,
+    repeat_signature([:anyInvocation, :allInvocations, :allInvocationsEqual], (ASTBool, ASTBool))...,
 )
+
+# Matrix Functions (8.6)
+
+TypeInference.builtin_fn_ret_type(::GLCtx, ::Val{:matrixCompMult}, ::Type{M}, ::Type{M}) where {M<:MatTypes} = M
+
+function TypeInference.builtin_fn_ret_type(::GLCtx, ::Val{:outerProduct}, ::Type{V1}, ::Type{V2}) where {V1<:VecTypes,V2<:VecTypes}
+    el_type = eltype(V1)
+
+    if !(el_type <: Union{Float32,Float64}) || eltype(V2) != el_type
+        return nothing
+    end
+
+    v1_el_count, v2_el_count = elcount(V1), elcount(V2)
+
+    get_ast_mat_type(el_type, v2_el_count, v1_el_count)
+end
+
+TypeInference.builtin_fn_ret_type(::GLCtx, ::Val{:transpose}, ::Type{M}) where {M<:MatTypes} =
+    get_ast_mat_type(eltype(M), reverse(size(to_ast(M)))...)
+
+TypeInference.builtin_fn_ret_type(::GLCtx, ::Val{:determinant}, ::Type{M}) where {M<:SquareMatTypes} = ASTFloat32
+TypeInference.builtin_fn_ret_type(::GLCtx, ::Val{:inverse}, ::Type{M}) where {M<:SquareMatTypes} = M
+
+# Generate methods based on the above dictionary
+
+# TODO
+# perf could possibly be improved here by grouping all the definitions into a single quote block and only @eval-ing that once
+# the resulting definitions could also be saved to a file to improve precompile time (maybe invalidate based on changes to the dictionary?)
 
 function define_builtin(fsym::Symbol, params_sig, ret_val)
     @assert ret_val isa Symbol || isconcretetype(ret_val)
 
-    fn_def = :(TypeInference.builtin_fn_ret_type(::GLSLPipelineContext, ::Val{$(QuoteNode(fsym))}, $(params_sig...)) = $ret_val)
+    fn_def = :(TypeInference.builtin_fn_ret_type(::GLCtx, ::Val{$(QuoteNode(fsym))}, $(params_sig...)) = $ret_val)
 
     @eval $fn_def
     fn_def
@@ -263,7 +301,7 @@ end
 function define_builtin(fsym::Symbol, params_sig, type_vars_sig, ret_val)
     @assert ret_val isa Symbol || isconcretetype(ret_val)
 
-    fn_def = :(TypeInference.builtin_fn_ret_type(::GLSLPipelineContext, ::Val{$(QuoteNode(fsym))}, $(params_sig...)) where {$(type_vars_sig...)} = $ret_val)
+    fn_def = :(TypeInference.builtin_fn_ret_type(::GLCtx, ::Val{$(QuoteNode(fsym))}, $(params_sig...)) where {$(type_vars_sig...)} = $ret_val)
 
     @eval $fn_def
     fn_def

@@ -52,7 +52,7 @@ function run_glsl_preprocessor(mod::Module, pipeline_ctx::GLSLPipelineContext, a
     fbody = ast.args[2]
     @assert fbody isa Expr && fbody.head == :block
 
-    glsl_preprocess!(fbody, mod)
+    fbody = glsl_preprocess(fbody, mod)
 
     ast
 end

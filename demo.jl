@@ -224,30 +224,44 @@ using JuliaGLM
 
 # TODO: first line locals conflict with env syms (if e.g. x::Int32)
 # TODO: type decls like local x::Int32
-code = @transpile(
+@skip code = @transpile(
     GLSLTranspiler.GLSL.glsl_pipeline,
     function test_shader(@in(a::Float32), @out(col::Vec4))
-        x = 2
-
-        s = JuliaGLM.smoothstep(2.0, 2.0, vec3(0))
-        v2 = dFdx(vec2(0))
-        v3 = dFdy(vec3(1))
-        f1 = dFdy(1.0)
-
-        f = JuliaGLM.dot(vec3(0), vec3(1))
-
-        f32 = 2.0
-        f64 = Float64(2.0)
-
-        if x > 3
-            x = x + 3
-        end
-
-        while x < 0
-            x = 3
-        end
+        i = 1
+        m2 = mat2(1)
+        f = m2[i]
+        m43 = mat4x3(1)
+        #v4 = m43[1, :]
+        v3 = m43[:, i]
+        m43_2 = m43[:, :]
     end,
     false
+)
+
+code = @transpile(
+    GLSLTranspiler.GLSL.glsl_pipeline,
+    function mat_test(@out(frag_col::Vec4))
+        m2 = mat2(1, 2, 3, 4)
+        m3 = mat3(1, 2, 3, 4, 5, 6, 7, 8, 9)
+        m4 = mat4(1, 0, 0, 0, 0, 2, 0, 0, 0, 0, 3, 0, 0, 0, 0, 4)
+
+        c0_m2 = m2[:, 1]
+        c1_m3 = m3[:, 2]
+        c2_m4 = m4[:, 3]
+
+        swizzled = c1_m3[:xy][:x]
+        elem = m2[1, 2]
+        elem_dup = m2[3]
+
+        mmul = m3 * m3'
+
+        frag_col = vec4(
+            c0_m2[:x] / 4.0,
+            elem / 4.0,
+            swizzled / 8.0,
+            1.0
+        )
+    end
 )
 
 println(code)

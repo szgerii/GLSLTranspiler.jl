@@ -116,6 +116,31 @@ end
     body::GLSLBlock
 end
 
+@exported struct GLSLLogicalAnd <: GLSLASTNode
+    lhs::GLSLASTNode
+    rhs::GLSLASTNode
+end
+
+@exported struct GLSLLogicalOr <: GLSLASTNode
+    lhs::GLSLASTNode
+    rhs::GLSLASTNode
+end
+
+@exported struct GLSLLogicalXor <: GLSLASTNode
+    lhs::GLSLASTNode
+    rhs::GLSLASTNode
+end
+
+@exported struct GLSLLogicalNeg <: GLSLASTNode
+    body::GLSLASTNode
+end
+
+@exported struct GLSLMatIndexer <: GLSLASTNode
+    target::GLSLASTNode
+    column::GLSLASTNode
+    row::Union{GLSLASTNode,Nothing}
+end
+
 using InteractiveUtils
 
 function precompile_glsl_ast(supertype=GLSLASTNode)

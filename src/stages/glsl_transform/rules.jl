@@ -1,21 +1,3 @@
-#=
-@def_tagtype TypedASTTypeTag LiteralTag
-
-struct ExprTag <: TypedASTTypeTag end
-struct SymbolTag <: TypedASTTypeTag end
-struct QuoteNodeTag <: TypedASTTypeTag end
-struct LineNumberNodeTag <: TypedASTTypeTag end
-
-@def_pre_rules(
-    TypedASTTypeTag,
-    TypedASTNode,
-    (ExprTag, node -> node.original[] isa Expr),
-    (SymbolTag, node -> node.original[] isa Symbol),
-    (QuoteNodeTag, node -> node.original[] isa QuoteNode),
-    (LineNumberNodeTag, node -> node.original[] isa LineNumberNode),
-)
-=#
-
 @def_tagtype ASTConstructTag DefaultTag
 
 struct SymbolTag <: ASTConstructTag end
@@ -30,7 +12,7 @@ struct ForTag <: ASTConstructTag end
 struct WhileTag <: ASTConstructTag end
 struct SwizzleTag <: ASTConstructTag end
 struct IndexerTag <: ASTConstructTag end
-struct DiscardTag <: ASTConstructTag end
+struct LogicalOperatorTag <: ASTConstructTag end
 
 @def_pre_rules(
     ASTConstructTag,
@@ -66,6 +48,11 @@ struct DiscardTag <: ASTConstructTag end
     (IndexerTag, node -> begin
         expr = node.original[]
         expr isa Expr && expr.head == :ref
+    end),
+    (LogicalOperatorTag, node -> begin
+        expr = node.original[]
+
+        expr isa Expr && expr.head == :call && expr.args[1] in [:(!), :(⊻)]
     end)
 )
 
@@ -81,6 +68,7 @@ Tagger.get_eq_projection(::Type{ASTConstructTag}, ::Type{TypedASTNode}) =
     (CallTag, :call),
     (ReturnTag, :return),
     (DeclTag, :global, :local),
-    (WhileTag, :while)
+    (WhileTag, :while),
+    (LogicalOperatorTag, :(&&), :(||))
     #    (ForTag, :for),
 )

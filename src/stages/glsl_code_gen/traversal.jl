@@ -1,4 +1,4 @@
-const infix_functions = [:+, :-, :*, :/, :(<=), :(<), :(>), :(>=), :(==), :(!=)]
+const infix_functions = [:+, :-, :*, :/, :%, :(<=), :(<), :(>), :(>=), :(==), :(!=)]
 
 glsl_cg_traverse(node::GLSLEmptyNode, ctx::GLSLCodeGenContext) = ""
 
@@ -132,6 +132,32 @@ function glsl_cg_traverse(node::GLSLWhile, ctx::GLSLCodeGenContext)
     code
 end
 
+function glsl_cg_traverse(node::GLSLLogicalAnd, ctx::GLSLCodeGenContext)
+    glsl_cg_traverse(node.lhs, ctx) * " && " * glsl_cg_traverse(node.rhs, ctx)
+end
+
+function glsl_cg_traverse(node::GLSLLogicalOr, ctx::GLSLCodeGenContext)
+    glsl_cg_traverse(node.lhs, ctx) * " || " * glsl_cg_traverse(node.rhs, ctx)
+end
+
+function glsl_cg_traverse(node::GLSLLogicalXor, ctx::GLSLCodeGenContext)
+    glsl_cg_traverse(node.lhs, ctx) * " ^^ " * glsl_cg_traverse(node.rhs, ctx)
+end
+
+function glsl_cg_traverse(node::GLSLLogicalNeg, ctx::GLSLCodeGenContext)
+    "!" * glsl_cg_traverse(node.body, ctx)
+end
+
 function glsl_cg_traverse(node::GLSLSwizzle, ctx::GLSLCodeGenContext)
     glsl_cg_traverse(node.base, ctx) * "." * node.swizzle
+end
+
+function glsl_cg_traverse(node::GLSLMatIndexer, ctx::GLSLCodeGenContext)
+    code = glsl_cg_traverse(node.target, ctx) * "[$(glsl_cg_traverse(node.column, ctx))]"
+
+    if !isnothing(node.row)
+        code *= "[$(glsl_cg_traverse(node.row, ctx))]"
+    end
+
+    code
 end

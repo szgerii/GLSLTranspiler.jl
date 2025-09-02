@@ -15,24 +15,9 @@ function gen_typed_ast(node::ScopedASTNode, ::Type{ExprTag}, ctx::TIContext)::Ty
 
     typed_node = TypedASTNode(node)
 
-    unwrap_range_indices = []
-    if node.original[].head == :for
-        push!(unwrap_range_indices, 1)
-    end
-
     for (i, child) in enumerate(node.children)
-        toggle_unwrap = !ctx.unwrap_ranges && i in unwrap_range_indices
-
-        if toggle_unwrap
-            ctx.unwrap_ranges = true
-        end
-
         child_node = gen_typed_ast(child, ctx)
         push!(typed_node.children, child_node)
-
-        if toggle_unwrap
-            ctx.unwrap_ranges = false
-        end
     end
 
     infer_typed_ast_node!(typed_node, tag, ctx)
@@ -76,7 +61,7 @@ function gen_typed_ast(node::ScopedASTNode, ::Type{SymbolTag}, ctx::TIContext)::
     end
 
     # if we didn't, mark it as a void_sym (an undefined symbol)
-    # we dont error here, as it could still be part of a valid expression (e.g. value assignment lhs)
+    # we dont error here, as it could still be part of a valid expression (e.g. assignment lhs, function def)
     TypedASTNode(node, ASTVoidSym)
 end
 

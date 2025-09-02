@@ -1,6 +1,6 @@
-function glsl_preprocess!(node::Expr, mod::Module)
-    for arg in node.args
-        glsl_preprocess!(arg, mod)
+function glsl_preprocess(node::Expr, mod::Module)
+    for (i, arg) in enumerate(node.args)
+        node.args[i] = glsl_preprocess(arg, mod)
     end
 
     # force fn calls that can possibly point to JuliaGLM functions to explicitly refer to those
@@ -12,9 +12,15 @@ function glsl_preprocess!(node::Expr, mod::Module)
             #println(fsym, " inner")
             #node.args[1] = :(JuliaGLM.$(fsym))
         end
+    elseif node.head == Symbol("'")
+        @assert length(node.args) == 1
+
+        return :(transpose($(node.args[1])))
     end
+
+    node
 end
 
-glsl_preprocess!(_::ASTNode, _::Module) = nothing
+glsl_preprocess(node::ASTNode, _::Module) = node
 
-precomp_union_types(ASTNode, glsl_preprocess!, (missing, Module))
+precomp_union_types(ASTNode, glsl_preprocess, (missing, Module))

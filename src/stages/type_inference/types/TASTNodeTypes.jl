@@ -1,6 +1,6 @@
 import ..GLSLTranspiler
 
-export ASTValueType, GLM_EL_VEC_TYPES, elcount, get_ast_vec_type
+export ASTValueType, VEC_EL_TYPES, MAT_EL_TYPES, elcount, get_ast_vec_type, get_ast_mat_type, is_ast_integer, to_ast, to_tast
 
 @exported abstract type ASTType end
 
@@ -21,7 +21,7 @@ export ASTValueType, GLM_EL_VEC_TYPES, elcount, get_ast_vec_type
 elcount(::Type{T}) where {T<:ASTVec} =
     error("Invalid AST vector type: $T\n", "No elcount method exists for AST vector subtype.")
 
-const GLM_EL_VEC_TYPES = [
+const VEC_EL_TYPES = [
     ("F", Float32),
     ("D", Float64),
     ("I", Int32),
@@ -30,29 +30,45 @@ const GLM_EL_VEC_TYPES = [
 ]
 
 get_ast_vec_type(::Type{T}, n::Int) where T = get_ast_vec_type(T, Val(n))
-precomp_union_types(Union{Float32,Float64,Int32,UInt32,Bool}, get_ast_vec_type, (missing, Int), true)
+precomp_union_types(Union{map(t -> t[2], VEC_EL_TYPES)...}, get_ast_vec_type, (missing, Int), true)
 
-vec_type_syms = []
-for (suffix, el_type) in GLM_EL_VEC_TYPES
+vec_types = []
+for (suffix, el_type) in VEC_EL_TYPES
     abs_sym = Symbol("ASTVecN", suffix)
     @eval @exported abstract type $abs_sym <: ASTVec end
+    @eval Base.eltype(::Type{<:$abs_sym}) = $el_type
 
     for n in 2:4
         sym = Symbol("ASTVec", n, suffix)
         @eval @exported struct $sym <: $abs_sym end
-        @eval Base.eltype(::Type{$sym}) = $el_type
         @eval elcount(::Type{$sym}) = $n
-        @eval get_ast_vec_type(::Type{$el_type}, _::Val{$n}) = $sym
-        #precompile(get_ast_vec_type, (Type{el_type}, Val{n}))
+        @eval get_ast_vec_type(::Type{$el_type}, ::Val{$n}) = $sym
 
-        @assert isdefined(@__MODULE__, sym)
+        push!(vec_types, getfield(@__MODULE__, sym))
+    end
+end
 
-        vec_type = getfield(@__MODULE__, sym)
-        @assert vec_type <: ASTVec
-        @assert eltype(vec_type) == el_type
-        @assert elcount(vec_type) == n
+const MAT_EL_TYPES = VEC_EL_TYPES
 
-        push!(vec_type_syms, vec_type)
+get_ast_mat_type(::Type{T}, n::Int, m::Int) where T = get_ast_mat_type(T, Val(n), Val(m))
+precomp_union_types(Union{map(t -> t[2], MAT_EL_TYPES)...}, get_ast_mat_type, (missing, Int, Int), true)
+
+@exported abstract type ASTMat <: ASTType end
+
+mat_types = []
+for (suffix, el_type) in MAT_EL_TYPES
+    abs_sym = Symbol("ASTMatNxM", suffix)
+    @eval @exported abstract type $abs_sym <: ASTMat end
+
+    for n in 2:4
+        for m in 2:4
+            sym = Symbol("ASTMat", n, "x", m, suffix)
+            @eval @exported struct $sym <: $abs_sym end
+            @eval Base.eltype(::Type{$sym}) = $el_type
+            @eval get_ast_mat_type(::Type{$el_type}, ::Val{$n}, ::Val{$m}) = $sym
+
+            push!(mat_types, getfield(@__MODULE__, sym))
+        end
     end
 end
 
@@ -64,25 +80,28 @@ Base.string(::Type{T}) where {T<:ASTType} = string(nameof(T))
 Base.show(io::IO, ::Type{T}) where {T<:ASTType} =
     !(T isa Union) ? print(io, string(nameof(T))) : invoke(Base.show, Tuple{IO,Union}, io, T)
 
-const tast_value_types =
-    [ASTInt32, ASTInt64, ASTUInt32, ASTUInt64, ASTFloat32, ASTFloat64, ASTBool, ASTChar, ASTString, vec_type_syms...]
-
-const ASTValueType = Union{tast_value_types...}
-
-@exported struct ASTRange{T<:ASTValueType} <: ASTType end
-Base.eltype(::Type{ASTRange{T}}) where T = T
-Base.eltype(_::ASTRange{T}) where T = T
+const ASTValueType = Union{
+    ASTBool,
+    ASTInt32,ASTInt64,
+    ASTUInt32,ASTUInt64,
+    ASTFloat32,ASTFloat64,
+    ASTChar,ASTString,
+    vec_types...,
+    mat_types...
+}
 
 is_void(::Type{ASTVoid}) = true
 is_void(::Type{ASTVoidSym}) = true
 is_void(::Type{<:ASTType}) = false
 
+is_ast_integer(::Type{T}) where T = T <: Union{ASTInt32,ASTInt64,ASTUInt32,ASTUInt64}
+
 macro define_tast_bijection(ast_type, tast_type)
     quote
-        # TAST -> AST
-        $(esc(:to_ast))(::Type{$(esc(tast_type))}) = $(esc(ast_type))
         # AST -> TAST
         $(esc(:to_tast))(::Type{$(esc(ast_type))}) = $(esc(tast_type))
+        # TAST -> AST
+        $(esc(:to_ast))(::Type{$(esc(tast_type))}) = $(esc(ast_type))
     end
 end
 
@@ -92,7 +111,7 @@ to_tast(::Type{T}) where T = error("Found value of unsupported type: ", T)
 to_tast(::Type{T}) where {T<:ASTLiteral} = nothing
 to_tast(::Type{<:Function}) = ASTFunction
 
-# type constructors like Int64(...)
+# for type constructors like Int64(...)
 to_tast(::Type{DataType}) = ASTFunction
 
 @define_tast_bijection Int32 ASTInt32
@@ -108,9 +127,23 @@ to_tast(::Type{DataType}) = ASTFunction
 @define_tast_bijection Module ASTModule
 
 for n in 2:4
-    for (suffix, el_type) in GLM_EL_VEC_TYPES
-        ast_vec_sym = Symbol("Vec", n, "T")
-        tast_vec_sym = Symbol("ASTVec", n, suffix)
-        @eval @define_tast_bijection $ast_vec_sym{$el_type} $tast_vec_sym
+    for (suffix, el_type) in VEC_EL_TYPES
+        ast_vec_base = Symbol("Vec", n, "T")
+        tast_vec = Symbol("ASTVec", n, suffix)
+
+        @eval to_tast(::Type{<:VecNT{$n,$el_type}}) = $tast_vec
+        @eval to_ast(::Type{$tast_vec}) = $ast_vec_base{$el_type}
+    end
+end
+
+for n in 2:4
+    for m in 2:4
+        for (suffix, el_type) in MAT_EL_TYPES
+            ast_mat = Symbol(suffix != "F" ? suffix : "", "Mat", n, "x", m)
+            tast_mat = Symbol("ASTMat", n, "x", m, suffix)
+
+            @eval to_tast(::Type{<:MatNxMT{$n,$m,$el_type}}) = $tast_mat
+            @eval to_ast(::Type{$tast_mat}) = $ast_mat
+        end
     end
 end

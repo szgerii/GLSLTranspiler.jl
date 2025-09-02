@@ -1,8 +1,11 @@
 using ....GLSLTranspiler: ast_error
 
+# for zero-based indexing
+wrap_minus_one(node::GLSLASTNode) = GLSLCall(GLSLSymbol(:(-)), [node, GLSLLiteral(1)])
+
 function transform_children!(
     state::GLSLTransformState, ctx::GTContext, first::Int=1, last::Int=length(state.typed_node.children);
-    init_children::Bool=true
+    init_children::Bool=true#, skip_predicates::Vector{<:Function}=Vector()
 )
     if init_children
         state.children = Vector{GLSLTransformState}(undef, length(state.typed_node.children))
@@ -12,7 +15,10 @@ function transform_children!(
         idx = first + i - 1
 
         child_state = GLSLTransformState(child)
+
         glsl_transform!(child_state, ctx)
+        #if !any([pred(child_state) for pred in skip_predicates])
+        #end
 
         state.children[idx] = child_state
     end
@@ -232,6 +238,8 @@ end
 function glsl_transform!(state::GLSLTransformState, ::Type{SwizzleTag}, ctx::GTContext)
     transform_children!(state, ctx, 1, 1)
 
+    # TODO: move swizzle validation here
+
     swizzle = state.typed_node.children[2].original[]
     @assert swizzle isa String
 
@@ -239,12 +247,106 @@ function glsl_transform!(state::GLSLTransformState, ::Type{SwizzleTag}, ctx::GTC
 end
 
 function glsl_transform!(state::GLSLTransformState, ::Type{IndexerTag}, ctx::GTContext)
-    transform_children!(state, ctx, 1, 1)
+    transform_children!(state, ctx)
 
-    idx = state.original[].args[2]
-    @assert 1 <= idx <= elcount(state.children[1].typed_node.type)
+    target = state.children[1]
+    target_type = target.typed_node.type
 
-    state.glsl_node = GLSLSwizzle(state.children[1].glsl_node, "xyzw"[idx] |> string)
+    if target_type <: ASTMat
+        # mat indexing
+        (n, m) = size(to_ast(target_type))
+
+        indices = state.children[2:end]
+
+        result = nothing
+
+        if length(indices) == 1
+            idx = indices[1]
+
+            if !is_ast_integer(idx.typed_node.type)
+                ast_error(state.original[], "Invalid single-argument indexer type for matrix type $(target_type): $(idx.typed_node.type)")
+            end
+
+            # check that literals can't be out of bounds
+            if idx.original[] isa ASTLiteral && (idx.original[] < 1 || idx.original[] > n * m)
+                ast_error(state.original[], "Element indexer literal's value is considered out of bounds for matrix type $(target_type)")
+            end
+
+            # col idx: ⌊(idx - 1) / n⌋
+            # row idx: (idx - 1) % n
+            col_idx = GLSLCall(GLSLSymbol(:/), [wrap_minus_one(idx.glsl_node), GLSLLiteral(n)])
+            row_idx = GLSLCall(GLSLSymbol(:%), [wrap_minus_one(idx.glsl_node), GLSLLiteral(n)])
+
+            result = GLSLMatIndexer(target.glsl_node, col_idx, row_idx)
+        elseif length(indices) == 2
+            row_idx = indices[1]
+            col_idx = indices[2]
+
+            if col_idx.original[] == row_idx.original[] == :(:)
+                result = target.glsl_node
+            elseif row_idx.original[] == :(:) && is_ast_integer(col_idx.typed_node.type)
+                if col_idx.original[] isa ASTLiteral && (col_idx.original[] < 1 || col_idx.original[] > m)
+                    ast_error(state.original[], "Column indexer literal's value is considered out of bounds matrix type $(target_type)")
+                end
+
+                result = GLSLMatIndexer(target.glsl_node, wrap_minus_one(col_idx.glsl_node), nothing)
+            elseif col_idx.original[] == :(:) && is_ast_integer(row_idx.typed_node.type)
+                ast_error(state.original[], "Cannot natively access row of a matrix as VecN because of OpenGL's column-major matrix representation")
+            elseif is_ast_integer(col_idx.typed_node.type) && is_ast_integer(row_idx.typed_node.type)
+                result = GLSLMatIndexer(target.glsl_node, wrap_minus_one(col_idx.glsl_node), wrap_minus_one(row_idx.glsl_node))
+            end
+        end
+
+        if isnothing(result)
+            ast_error(state.original[], "Invalid or unsupported indexer for matrix type $(target.type)")
+        end
+
+        state.glsl_node = result
+    else
+        idx = state.original[].args[2]
+        @assert 1 <= idx <= elcount(state.children[1].typed_node.type)
+
+        state.glsl_node = GLSLSwizzle(state.children[1].glsl_node, "xyzw"[idx] |> string)
+    end
+end
+
+function glsl_transform!(state::GLSLTransformState, ::Type{LogicalOperatorTag}, ctx::GTContext)
+    transform_children!(state, ctx)
+
+    if state.original[].head == :(&&)
+        @assert length(state.children) == 2
+        @assert state.children[1].typed_node.type == ASTBool
+        @assert state.children[2].typed_node.type == ASTBool
+
+        state.glsl_node = GLSLLogicalAnd(glsl_children(state)...)
+    elseif state.original[].head == :(||)
+        @assert length(state.children) == 2
+        @assert state.children[1].typed_node.type == ASTBool
+        @assert state.children[2].typed_node.type == ASTBool
+
+        state.glsl_node = GLSLLogicalOr(glsl_children(state)...)
+    elseif state.original[].head == :call
+        if state.children[1].original[] == :(!)
+            @assert length(state.children) == 2
+
+            arg_type = state.children[2].typed_node.type
+            if arg_type != ASTBool
+                ast_error(state.original[], "Boolean negation's argument was $arg_type instead of a boolean value")
+            end
+
+            state.glsl_node = GLSLLogicalNeg(state.children[2].glsl_node)
+        elseif state.children[1].original[] == :(⊻)
+            @assert length(state.children) == 3
+
+            lhs_type = state.children[2].typed_node.type
+            rhs_type = state.children[3].typed_node.type
+            if lhs_type != ASTBool || rhs_type != ASTBool
+                ast_error(state.original[], "Boolean XOR's argument types were ($lhs_type, $rhs_type) instead of (ASTBool, ASTBool)")
+            end
+
+            state.glsl_node = GLSLLogicalXor(glsl_children(state, first=2)...)
+        end
+    end
 end
 
 precomp_subtypes(ASTConstructTag, glsl_transform!, (GLSLTransformState, missing, GTContext))

@@ -4,6 +4,10 @@ function ast_error(node::ASTNode, message...)
     error(message..., "\nThe above error occured while processing the following AST node:\n$str")
 end
 
+function ast_error(node::WrapperTree, message...)
+    ast_error(get_original(node)[], message...)
+end
+
 function ast_string(ex::Expr)
     str = ':' * string(ex.head)
 

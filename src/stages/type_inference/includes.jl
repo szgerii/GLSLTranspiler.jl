@@ -5,8 +5,9 @@ using ..BaseTypes
 using ..Utils
 using ..ScopeDiscovery
 using ..SymbolResolution
-using Tagger
+using StaticArrays
 using JuliaGLM
+using Tagger
 
 #! format: off
 public builtin_fn_ret_type

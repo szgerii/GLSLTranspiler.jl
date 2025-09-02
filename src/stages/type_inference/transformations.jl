@@ -73,7 +73,7 @@ function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTCallTag}, ctx::TIC
     for arg in args[first_arg_idx:end]
         if !(arg.type <: ASTValueType)
             ast_error(node.original[],
-                "Invalid value type in '$fsym' function call argument: $(arg.type)")
+                "Invalid value type in '$(fsym.original[])' function call argument: $(arg.type)")
         end
     end
 
@@ -99,7 +99,19 @@ function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTCallTag}, ctx::TIC
 
     if length(rtypes) == 0 || (rtypes == [Nothing])
         node.type = ASTVoid
-    elseif length(rtypes) == 1 && rtypes[1] != Union{}
+    elseif length(rtypes) == 1
+        if rtypes[1] in [Union{}, Any]
+            println(f)
+            println(args_tuple)
+            ct = Base.code_typed(f, args_tuple; optimize=false, debuginfo=:none)
+            println(ct)
+            @assert length(ct) == 1
+
+            rtypes[1] = ct[1].second
+        end
+
+        @assert !(rtypes[1] in [Union{}, Any])
+
         # clear return type
         tast_type = to_tast(rtypes[1])
 
@@ -155,7 +167,7 @@ function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTLogicalChainTag}, 
     for arg in node.children
         if arg.type != ASTBool
             ast_error(node,
-                "Found invalid type in a logical chaining operator's argument. Expected ASTBool, got $(arg.type) instead.")
+                "Found invalid type in a logical chaining operator's arguments. Expected ASTBool, got $(arg.type) instead.")
         end
     end
 
@@ -165,12 +177,27 @@ end
 const swizzle_groups = ["xyzw", "rgba", "stpq"]
 
 function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTRefTag}, ctx::TIContext)
-    @assert length(node.children) == 2
-    @assert node.children[1].type <: ASTVec "Indexing is only supported with vector types for now"
+    if node.children[1].type <: ASTVec
+        handle_vec_index!(node, ctx)
+    elseif node.children[1].type <: ASTMat
+        handle_mat_index!(node, ctx)
+    else
+        ast_error(node.original[], "Trying to index into unsupported type: $(node.children[1].type)")
+    end
+end
 
-    el_type = eltype(node.children[1].type)
-    el_count = elcount(node.children[1].type)
+function handle_vec_index!(node::TypedASTNode, _::TIContext)
+    vec_node = node.children[1]
+    el_type = eltype(vec_node.type)
+    el_count = elcount(vec_node.type)
 
+    if length(node.children) < 2
+        ast_error(node.original[], "Trying to dereference a vector ($(vec_node.type))")
+    elseif length(node.children) > 2
+        ast_error(node.original[], "Multi-argument vector indexing is not supported")
+    end
+
+    # single-argument indexing
     idx = node.children[2].original[]
 
     if idx isa QuoteNode
@@ -214,20 +241,62 @@ function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTRefTag}, ctx::TICo
 
         if new_len == 1
             node.type = to_tast(el_type)
-            @assert !isnothing(node.type) "Invalid element type $el_type for vector type $(node.children[1].type)"
+            @assert !isnothing(node.type) "Invalid element type $el_type in vector type $(vec_node.type)"
         elseif 2 <= new_len <= 4
             node.type = get_ast_vec_type(el_type, new_len)
         else
-            error("Invalid swizzle length in swizzle $idx for $(node.children[1].original[])")
+            error("Invalid swizzle length in swizzle $idx for $(vec_node.original[])")
         end
-    elseif idx isa Int
-        @assert idx <= el_count "Index out of bounds: attempting to access component $idx of $(node.children[1].type)"
+    elseif idx isa Integer
+        # regular indexing
+        @assert idx <= el_count "Index out of bounds: attempting to access component $idx of $(vec_node.type)"
 
         node.type = to_tast(el_type)
-        @assert !isnothing(node.type) "Invalid element type $el_type for vector type $(node.children[1].type)"
+        @assert !isnothing(node.type) "Invalid element type $el_type for vector type $(vec_node.type)"
     else
         ast_error(node.original[],
-            "Invalid index type provided for vector indexing: $(node.children[2].type)")
+            "Unsupported or invalid index type provided for vector indexing: $(node.children[2].type)")
+    end
+end
+
+function handle_mat_index!(node::TypedASTNode, _::TIContext)
+    node.type = ASTVoid
+
+    mat_node = node.children[1]
+    el_type = eltype(mat_node.type)
+    (n, m) = size(to_ast(mat_node.type))
+
+    @assert 2 <= n <= 4 && 2 <= m <= 4
+
+    indices = node.children[2:end]
+
+    if length(indices) == 1
+        idx = indices[1]
+
+        if is_ast_integer(idx.type)
+            node.type = to_tast(el_type)
+            @assert !isnothing(node.type)
+        end
+    elseif length(indices) == 2
+        row_idx = indices[1]
+        col_idx = indices[2]
+        row_orig = row_idx.original[]
+        col_orig = col_idx.original[]
+
+        if row_orig == :(:) && col_orig == :(:)
+            node.type = mat_node.type
+        elseif row_orig == :(:) && is_ast_integer(col_idx.type)
+            node.type = get_ast_vec_type(el_type, m)
+        elseif col_orig == :(:) && is_ast_integer(row_idx.type)
+            node.type = get_ast_vec_type(el_type, n)
+        elseif is_ast_integer(col_idx.type) && is_ast_integer(row_idx.type)
+            node.type = to_tast(el_type)
+            @assert !isnothing(node.type)
+        end
+    end
+
+    if node.type == ASTVoid
+        ast_error(node.original[], "Couldn't determine type for indexer into matrix type $(mat_node.type). This may be the result of using an unsupported indexer format.")
     end
 end
 
