@@ -1,5 +1,3 @@
-import ..GLSLTranspiler
-
 export ScopedASTNode
 
 mutable struct ScopedASTNode <: WrapperTree
@@ -12,7 +10,7 @@ end
 ScopedASTNode(original::ASTNodeRef, scope::Ref{Scope}, has_own_scope::Bool=false) =
     ScopedASTNode(original, Vector{ScopedASTNode}(), scope, has_own_scope)
 
-function GLSLTranspiler.tree_node_string(node::ScopedASTNode)
+function CoreTypes.tree_node_string(node::ScopedASTNode)
     prefix = ""
 
     # print scope information for global scope before the base fn def node
@@ -23,6 +21,6 @@ function GLSLTranspiler.tree_node_string(node::ScopedASTNode)
 
     prefix *
     (node.has_own_scope ?
-     string("[", string(node.scope[]), "]\n", GLSLTranspiler.tree_node_string(get_original(node)[])) :
-     GLSLTranspiler.tree_node_string(get_original(node)[]))
+     string("[", string(node.scope[]), "]\n", Transpiler.tree_node_string(get_original(node)[])) :
+     Transpiler.tree_node_string(get_original(node)[]))
 end

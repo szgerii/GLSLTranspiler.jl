@@ -1,11 +1,9 @@
-using ..GLSLTranspiler: ast_error, print_traverse
-
-const TypeInferStageReturn = Tuple{TypedASTNode,Ref{Scope},Vector{TypedUniqueSymbol}}
+const TypeInferStageRetType = Tuple{TypedASTNode,Ref{Scope},Vector{TypedUniqueSymbol}}
 
 function run_type_inference(
     mod::Module, pipeline_ctx::PipelineContext, scoped_ast::ScopedASTNode,
     root_scope::Ref{Scope}, usyms::Vector{UniqueSymbol}, usym_table::ScopedUSymMapping
-)::TypeInferStageReturn
+)::TypeInferStageRetType
     ctx = TIContext(mod, root_scope, map(usym -> (usym, nothing), usyms), usym_table, pipeline_ctx)
 
     fdecl = scoped_ast.children[1].original[]

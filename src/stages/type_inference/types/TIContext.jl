@@ -4,8 +4,7 @@ const USymTypeList = Vector{Tuple{UniqueSymbol,Union{DataType,Nothing}}}
 mutable struct TIContext
     defining_module::Module
     root_scope::Ref{Scope}
-    # DataType must be <: ASTValueType
-    typed_usyms::USymTypeList
+    typed_usyms::USymTypeList # DataType must be <: ASTValueType
     usym_table::ScopedUSymMapping
     return_type::DataType
     pipeline_ctx::PipelineContext

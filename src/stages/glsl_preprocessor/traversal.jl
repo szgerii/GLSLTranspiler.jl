@@ -4,7 +4,7 @@ function glsl_preprocess(node::Expr, mod::Module)
     end
 
     # force fn calls that can possibly point to JuliaGLM functions to explicitly refer to those
-    if GLSLTranspiler.transpiler_config.rewrite_to_glm && node.head == :call && node.args[1] isa Symbol
+    if Transpiler.transpiler_config.rewrite_to_glm && node.head == :call && node.args[1] isa Symbol
         fsym = node.args[1]
         #println(fsym, " outer")
 

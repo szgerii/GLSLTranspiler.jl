@@ -1,11 +1,12 @@
 module GLSLPreprocessor
 
-import JuliaGLM
-using ....GLSLTranspiler
+using ...Transpiler
+using ...CoreTypes
+using ...Utils
+using ...SymbolResolution
 using ..GLSL
-using ....BaseTypes
-using ....Utils
-using ....SymbolResolution
+
+import JuliaGLM
 
 include("traversal.jl")
 include("run.jl")

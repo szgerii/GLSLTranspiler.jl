@@ -13,4 +13,5 @@ GLSLTransformState(typed_node::TypedASTNode, glsl_node::GLSLASTNode, children::V
 
 map_glsl(states::Vector{GLSLTransformState}) = map(child -> child.glsl_node, states)
 
-glsl_children(state::GLSLTransformState; first::Int=1, last::Int=lastindex(state.children)) = map_glsl(state.children[first:last])
+glsl_children(state::GLSLTransformState; first::Int=1, last::Int=lastindex(state.children)) =
+    map_glsl(state.children[first:last])

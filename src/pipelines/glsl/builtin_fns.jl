@@ -1,6 +1,3 @@
-import .TypeInference
-using ..GLSLTranspiler
-
 const GLCtx = GLSLPipelineContext
 
 const GenFType = Union{ASTVecNF,ASTFloat32}
@@ -36,7 +33,7 @@ end
 function specialize_union(::Type{T}, n::Int) where T
     @assert T isa Union "Trying to specialize Union of gen types on a non-Union type"
 
-    sub_types = unwrap_union(T)
+    sub_types = Base.uniontypes(T)
     #@assert all(type -> is_gen_type(type), sub_types) "Non-gen-type symbol found during union specialization"
 
     Union{map(gen_type -> specialize_gen_type(gen_type, Val(n)), sub_types)...}
@@ -319,7 +316,7 @@ for (fsym, sigs) in GLSL_BUILTIN_FNS
 
         gen_type_params = []
         for param in sig
-            if !(param in gen_type_params) && (is_gen_type(param) || (param isa Union && any(is_gen_type, unwrap_union(param))))
+            if !(param in gen_type_params) && (is_gen_type(param) || (param isa Union && any(is_gen_type, Base.uniontypes(param))))
                 push!(gen_type_params, param)
             end
         end

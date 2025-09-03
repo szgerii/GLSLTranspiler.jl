@@ -1,4 +1,4 @@
-export IDChain, Scope, ScopeType, GLOBAL_SCOPE_ID, FUNCTION_SCOPE_ID, id_chain_string, same_scope, get_scope, get_root, in_hard_scope, is_global, is_parent_of
+export IDChain, GLOBAL_SCOPE_ID, FUNCTION_SCOPE_ID, id_chain_string
 
 const IDChain = Vector{UInt8}
 const GLOBAL_SCOPE_ID::IDChain = [0x1]
@@ -14,6 +14,8 @@ function id_chain_string(id_chain::IDChain, selected_idx)
 
     pre * selected * post
 end
+
+export ScopeType, Scope
 
 @enum ScopeType ModuleScope HardScope SoftScope LoopDeclScope
 
@@ -50,6 +52,8 @@ function scope_tree_string(scope::Scope, indent=0)
 
     scope_str
 end
+
+export same_scope, is_parent_of, get_scope, get_root, in_hard_scope, is_global
 
 same_scope(a::Scope, b::Scope) = a.id_chain == b.id_chain
 same_scope(a::Ref{Scope}, b::Ref{Scope}) = same_scope(a[], b[])

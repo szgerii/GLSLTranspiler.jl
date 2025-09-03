@@ -67,23 +67,6 @@ function find_usym_in_parents(sym::Symbol, id_chain::IDChain, ctx::SRContext)::U
     end
 
     return nothing
-
-    #=
-
-    # OLD PARENT RESOLUTION LOGIC
-
-    # go upwards the scope tree, excluding the global scope
-    for i in length(id_chain):-1:1
-        id_snippet = id_chain[1:i]
-
-        usym = get(ctx.usyms, get_usym_id(sym, id_snippet), nothing)
-        if !isnothing(usym)
-            return usym
-        end
-    end
-
-    return nothing
-    =#
 end
 
 find_usym_in_parents(sym::Symbol, scope::Ref{Scope}, ctx::SRContext) = find_usym_in_parents(sym, scope[].id_chain, ctx)

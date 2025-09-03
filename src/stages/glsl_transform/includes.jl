@@ -1,12 +1,14 @@
 module GLSLTransform
 
+using ...Transpiler
+using ...CoreTypes
+using ...Utils
+using ...ScopeDiscovery
+using ...SymbolResolution
+using ...TypeInference
+using ..GLSL
+
 import JuliaGLM
-using ....GLSLTranspiler
-using ....GLSL
-using ....BaseTypes
-using ....Utils
-using ....ScopeDiscovery
-using ....TypeInference
 using Tagger
 
 include("types/GLSLType.jl")

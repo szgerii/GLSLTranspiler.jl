@@ -1,4 +1,4 @@
-# GLSLTranspiler.jl
+# Transpiler.jl
 
 TODO: usage, general description, structure of AST types
 

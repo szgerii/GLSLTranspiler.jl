@@ -1,5 +1,3 @@
-using ..GLSLTranspiler: ast_error
-
 gen_typed_ast(node::ScopedASTNode, ctx::TIContext) =
     gen_typed_ast(node, tag_match(ScopedASTTypeTag, node), ctx)
 

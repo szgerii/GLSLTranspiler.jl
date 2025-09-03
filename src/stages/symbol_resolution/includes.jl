@@ -1,7 +1,9 @@
 module SymbolResolution
 
-using ..BaseTypes
+using ..CoreTypes
+using ..Utils
 using ..ScopeDiscovery
+
 using Tagger
 
 include("types/UniqueSymbol.jl")

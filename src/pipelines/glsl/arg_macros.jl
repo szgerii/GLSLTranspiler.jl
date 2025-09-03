@@ -1,7 +1,5 @@
 export @in, @out, @uniform
 
-const IN_SYM = :in
-
 macro in(decl)
     @assert decl isa Expr && decl.head == :(::)
 

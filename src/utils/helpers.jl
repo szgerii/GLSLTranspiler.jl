@@ -25,8 +25,6 @@ macro exported(def::Expr)
         if name isa Expr && name.head == :curly
             name = name.args[1]
         end
-
-        name = name
     end
 
     @assert name isa Symbol "The resolved name is not a Symbol (name = $name)"

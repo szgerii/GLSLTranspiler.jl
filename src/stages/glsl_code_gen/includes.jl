@@ -1,8 +1,9 @@
 module GLSLCodeGen
 
-using ....GLSLTranspiler.BaseTypes
-using ..GLSL.GLSLTransform
+using ..CoreTypes
 using ..GLSL
+using ..GLSL.GLSLTransform
+
 using Tagger
 
 include("types/GLSLCodeGenContext.jl")

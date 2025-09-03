@@ -1,6 +1,6 @@
-const SymResStageReturn = Tuple{ScopedASTNode,Ref{Scope},Vector{UniqueSymbol},ScopedUSymMapping}
+const SymResStageRetType = Tuple{ScopedASTNode,Ref{Scope},Vector{UniqueSymbol},ScopedUSymMapping}
 
-function run_sr(mod::Module, pipeline_ctx::PipelineContext, scoped_ast::ScopedASTNode, root_scope::Ref{Scope})::SymResStageReturn
+function run_sr(mod::Module, pipeline_ctx::PipelineContext, scoped_ast::ScopedASTNode, root_scope::Ref{Scope})::SymResStageRetType
     ctx = SRContext(mod, root_scope)
 
     env_syms = get_env_syms(pipeline_ctx)

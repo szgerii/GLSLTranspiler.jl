@@ -1,10 +1,11 @@
 module TypeInference
 
-using ..GLSLTranspiler
-using ..BaseTypes
+import ..Transpiler
+using ..CoreTypes
 using ..Utils
 using ..ScopeDiscovery
 using ..SymbolResolution
+
 using StaticArrays
 using JuliaGLM
 using Tagger

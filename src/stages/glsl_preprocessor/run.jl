@@ -1,7 +1,3 @@
-import ....GLSLTranspiler: type_from_ast
-import ....GLSLTranspiler.SymbolResolution
-import ....GLSLTranspiler.TypeInference: ASTValueType
-
 function run_glsl_preprocessor(mod::Module, pipeline_ctx::GLSLPipelineContext, ast::Expr)
     @assert ast.head == :function
 

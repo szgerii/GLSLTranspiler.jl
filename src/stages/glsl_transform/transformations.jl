@@ -1,5 +1,3 @@
-using ....GLSLTranspiler: ast_error
-
 # for zero-based indexing
 wrap_minus_one(node::GLSLASTNode) = GLSLCall(GLSLSymbol(:(-)), [node, GLSLLiteral(1)])
 

@@ -1,6 +1,7 @@
 module ScopeDiscovery
 
-using ..BaseTypes
+import ..Transpiler
+using ..CoreTypes
 using ..Utils
 using Tagger
 

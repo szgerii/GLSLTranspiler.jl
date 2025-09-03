@@ -1,6 +1,10 @@
 module GLSL
 
-using ..BaseTypes
+import ..Transpiler
+using ..CoreTypes
+using ..TypeInference
+
+using JuliaGLM
 
 include("GLSLShaderContext.jl")
 include("GLSLPipelineContext.jl")

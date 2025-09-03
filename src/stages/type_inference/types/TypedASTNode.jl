@@ -1,5 +1,3 @@
-import ..GLSLTranspiler
-
 @exported mutable struct TypedASTNode <: WrapperTree
     children::Vector{TypedASTNode}
     original::ASTNodeRef
@@ -21,4 +19,4 @@ precomp_subtypes(ASTType, TypedASTNode, (ScopedASTNode, missing))
 
 TypedASTNode(base::ScopedASTNode) = TypedASTNode(base, ASTVoid)
 
-GLSLTranspiler.tree_node_string(node::TypedASTNode) = "[$(node.type)]\n" * GLSLTranspiler.tree_node_string(node.original[])
+CoreTypes.tree_node_string(node::TypedASTNode) = "[$(node.type)]\n" * CoreTypes.tree_node_string(node.original[])

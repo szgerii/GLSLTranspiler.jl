@@ -1,5 +1,3 @@
-using ..GLSLTranspiler: ast_error, get_param_names
-
 collect_sym_usage!(ctx::SRContext, node::ScopedASTNode) = collect_sym_usage!(ctx, node, tag_match(ScopedASTTypeTag, node))
 collect_sym_usage!(_::SRContext, node::ScopedASTNode, ::Type{<:ScopedASTTypeTag}) = nothing
 

@@ -1,5 +1,3 @@
-using ..GLSLTranspiler: ast_error
-
 infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTDefault}, _::TIContext) = node
 
 function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTAssignmentTag}, ctx::TIContext)
@@ -10,7 +8,7 @@ function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTAssignmentTag}, ct
 
     vname = string(lhs.original[])
 
-    if is_void(rhs.type)
+    if is_ast_void(rhs.type)
         ast_error(node.original[],
             "Couldn't determine right side type of assignment expression. This might be the result of using an unsupported Julia feature.")
     end

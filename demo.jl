@@ -1,17 +1,18 @@
 using Pkg
 Pkg.activate(@__DIR__)
 
-# include("lib/GLM/glm.jl")
-# include("src/GLSLTranspiler.jl")
+macro skip(f...)
+    :()
+end
 
-using GLSLTranspiler
-using GLSLTranspiler.GLSL
-#using JuliaGLM
+using Transpiler
+using Transpiler.GLSL
+using JuliaGLM
 
 some_global = 2
 some_other_global = 3
 
-@skip @transpile GLSLTranspiler.GLSL.glsl_pipeline function test_fn(a::Int, b::Int)
+@skip @transpile Transpiler.GLSL.glsl_pipeline function test_fn(a::Int, b::Int)
     # global 1
     some_global = 2
     # local 1.1 because of assignment
@@ -67,7 +68,7 @@ i = 0
 j = 1
 
 @skip @transpile(
-    GLSLTranspiler.GLSL.glsl_pipeline,
+    Transpiler.GLSL.glsl_pipeline,
     function preprocessor()
         global i, j
         i += 2
@@ -80,7 +81,7 @@ j = 1
 )
 
 @skip @transpile(
-    GLSLTranspiler.GLSL.glsl_pipeline,
+    Transpiler.GLSL.glsl_pipeline,
     function scope()
         i = 1
 
@@ -111,7 +112,7 @@ j = 1
 )
 
 @skip @transpile(
-    GLSLTranspiler.GLSL.glsl_pipeline,
+    Transpiler.GLSL.glsl_pipeline,
     function symbols()
         i = 1
         j = 3
@@ -126,7 +127,7 @@ j = 1
 )
 
 @skip @transpile(
-    GLSLTranspiler.GLSL.glsl_pipeline,
+    Transpiler.GLSL.glsl_pipeline,
     function glsl_preprocessor(
         @in(normal::Vec3),
         @out(frag_col::Vec4),
@@ -138,14 +139,14 @@ j = 1
 )
 
 @skip @transpile(
-    GLSLTranspiler.GLSL.glsl_pipeline,
+    Transpiler.GLSL.glsl_pipeline,
     function green(@out(out_col::Vec4))
         out_col = Vec4(0, 1, 0, 1)
     end
 )
 
 @skip @transpile(
-    GLSLTranspiler.GLSL.glsl_pipeline,
+    Transpiler.GLSL.glsl_pipeline,
     function shadertoy_demo(
         @out(frag_color::Vec4),
         @uniform(time::Float32),
@@ -161,7 +162,7 @@ j = 1
 )
 
 @skip @transpile(
-    GLSLTranspiler.GLSL.glsl_pipeline,
+    Transpiler.GLSL.glsl_pipeline,
     function mouse_follow(
         @out(color::Vec4),
         @uniform(time::Float32),
@@ -183,7 +184,7 @@ j = 1
 )
 
 @skip code = @transpile(
-    GLSLTranspiler.GLSL.glsl_pipeline,
+    Transpiler.GLSL.glsl_pipeline,
     function sdf_disk(
         @out(frag_col::Vec4),
         @uniform(mouse::Vec4),
@@ -218,14 +219,12 @@ j = 1
 
 #println(code)
 
-#GLSLTranspiler.transpiler_config.literals_as_f32 = false
-
-using JuliaGLM
+#Transpiler.transpiler_config.literals_as_f32 = false
 
 # TODO: first line locals conflict with env syms (if e.g. x::Int32)
 # TODO: type decls like local x::Int32
 @skip code = @transpile(
-    GLSLTranspiler.GLSL.glsl_pipeline,
+    Transpiler.GLSL.glsl_pipeline,
     function test_shader(@in(a::Float32), @out(col::Vec4))
         i = 1
         m2 = mat2(1)
@@ -239,7 +238,7 @@ using JuliaGLM
 )
 
 code = @transpile(
-    GLSLTranspiler.GLSL.glsl_pipeline,
+    Transpiler.GLSL.glsl_pipeline,
     function mat_test(@out(frag_col::Vec4))
         m2 = mat2(1, 2, 3, 4)
         m3 = mat3(1, 2, 3, 4, 5, 6, 7, 8, 9)
@@ -267,7 +266,7 @@ code = @transpile(
 println(code)
 
 @skip @transpile(
-    GLSLTranspiler.GLSL.glsl_pipeline,
+    Transpiler.GLSL.glsl_pipeline,
     function range_test()
         acc = 0
         n = 5

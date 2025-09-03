@@ -1,4 +1,4 @@
-name = "GLSLTranspiler"
+name = "Transpiler"
 uuid = "0d69e4ee-4823-42be-833d-07e857825dc4"
 authors = ["szgeri <szucsi1104@gmail.com>"]
 version = "0.0.1"

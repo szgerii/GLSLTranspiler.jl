@@ -1,7 +1,3 @@
-import ...GLSLTranspiler
-using ...GLSLTranspiler.TypeInference
-using JuliaGLM
-
 export GLSLPipelineContext
 
 mutable struct GLSLPipelineContext <: PipelineContext
@@ -32,13 +28,13 @@ const gl_vars = [
     (:gl_FragCoord, Vec4)
 ]
 
-BaseTypes.init_pipeline_ctx(::Type{GLSLPipelineContext}) = GLSLPipelineContext(missing, deepcopy(gl_vars), remove_env_sym_decls!)
+CoreTypes.init_pipeline_ctx(::Type{GLSLPipelineContext}) = GLSLPipelineContext(missing, deepcopy(gl_vars), remove_env_sym_decls!)
 
-BaseTypes.get_def_transform(ctx::GLSLPipelineContext) = ctx.def_transform
+CoreTypes.get_def_transform(ctx::GLSLPipelineContext) = ctx.def_transform
 
-BaseTypes.get_env_syms(ctx::GLSLPipelineContext) = map(var -> var[1], ctx.env_syms)
+CoreTypes.get_env_syms(ctx::GLSLPipelineContext) = map(var -> var[1], ctx.env_syms)
 
-function BaseTypes.get_env_sym_type(sym::Symbol, ctx::GLSLPipelineContext)
+function CoreTypes.get_env_sym_type(sym::Symbol, ctx::GLSLPipelineContext)
     idx = findfirst(var -> var[1] == sym, ctx.env_syms)
 
     !isnothing(idx) ? ctx.env_syms[idx][2] : nothing

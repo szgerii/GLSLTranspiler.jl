@@ -1,8 +1,10 @@
-import ..GLSLTranspiler
-
-export ASTValueType, VEC_EL_TYPES, MAT_EL_TYPES, elcount, get_ast_vec_type, get_ast_mat_type, is_ast_integer, to_ast, to_tast
-
 @exported abstract type ASTType end
+
+Base.string(::Type{T}) where {T<:ASTType} = string(nameof(T))
+Base.show(io::IO, ::Type{T}) where {T<:ASTType} =
+    !(T isa Union) ? print(io, string(nameof(T))) : invoke(Base.show, Tuple{IO,Union}, io, T)
+
+# SCALARS AND OTHER VALUE TYPES
 
 @exported struct ASTInt32 <: ASTType end
 @exported struct ASTInt64 <: ASTType end
@@ -15,11 +17,21 @@ export ASTValueType, VEC_EL_TYPES, MAT_EL_TYPES, elcount, get_ast_vec_type, get_
 @exported struct ASTString <: ASTType end
 @exported struct ASTModule <: ASTType end
 @exported struct ASTSymbol <: ASTType end
+@exported struct ASTFunction <: ASTType end
+@exported struct ASTVoid <: ASTType end
+@exported struct ASTVoidSym <: ASTType end
 
-@exported abstract type ASTVec <: ASTType end
+export is_ast_void, is_ast_integer
 
-elcount(::Type{T}) where {T<:ASTVec} =
-    error("Invalid AST vector type: $T\n", "No elcount method exists for AST vector subtype.")
+is_ast_void(::Type{<:Union{ASTVoid,ASTVoidSym}}) = true
+is_ast_void(::Type{<:ASTType}) = false
+
+is_ast_integer(::Type{<:Union{ASTInt32,ASTInt64,ASTUInt32,ASTUInt64}}) = true
+is_ast_integer(::Type{<:ASTType}) = false
+
+# VECTORS
+
+export VEC_EL_TYPES, elcount, get_ast_vec_type
 
 const VEC_EL_TYPES = [
     ("F", Float32),
@@ -28,6 +40,11 @@ const VEC_EL_TYPES = [
     ("U", UInt32),
     ("B", Bool)
 ]
+
+@exported abstract type ASTVec <: ASTType end
+
+elcount(::Type{T}) where {T<:ASTVec} =
+    error("Invalid AST vector type: $T\n", "No elcount method exists for AST vector subtype.")
 
 get_ast_vec_type(::Type{T}, n::Int) where T = get_ast_vec_type(T, Val(n))
 precomp_union_types(Union{map(t -> t[2], VEC_EL_TYPES)...}, get_ast_vec_type, (missing, Int), true)
@@ -47,6 +64,10 @@ for (suffix, el_type) in VEC_EL_TYPES
         push!(vec_types, getfield(@__MODULE__, sym))
     end
 end
+
+# MATRICES
+
+export MAT_EL_TYPES, get_ast_mat_type
 
 const MAT_EL_TYPES = VEC_EL_TYPES
 
@@ -72,13 +93,7 @@ for (suffix, el_type) in MAT_EL_TYPES
     end
 end
 
-@exported struct ASTFunction <: ASTType end
-@exported struct ASTVoid <: ASTType end
-@exported struct ASTVoidSym <: ASTType end
-
-Base.string(::Type{T}) where {T<:ASTType} = string(nameof(T))
-Base.show(io::IO, ::Type{T}) where {T<:ASTType} =
-    !(T isa Union) ? print(io, string(nameof(T))) : invoke(Base.show, Tuple{IO,Union}, io, T)
+export ASTValueType
 
 const ASTValueType = Union{
     ASTBool,
@@ -90,11 +105,7 @@ const ASTValueType = Union{
     mat_types...
 }
 
-is_void(::Type{ASTVoid}) = true
-is_void(::Type{ASTVoidSym}) = true
-is_void(::Type{<:ASTType}) = false
-
-is_ast_integer(::Type{T}) where T = T <: Union{ASTInt32,ASTInt64,ASTUInt32,ASTUInt64}
+export to_ast, to_tast
 
 macro define_tast_bijection(ast_type, tast_type)
     quote

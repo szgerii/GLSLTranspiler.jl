@@ -1,26 +1,13 @@
-module GLSLTranspiler
+module Transpiler
 
-using Tagger
+# Common Types
+include("core_types/includes.jl")
 
-include("utils/type_utils.jl")
+using .CoreTypes
 
-# Base Types
-include("types/includes.jl")
+include("utils/includes.jl")
 
-using .BaseTypes
-
-# Utils
-# TODO: move every util fn here
-module Utils
-include("utils/precomp_utils.jl")
-end
-
-include("utils/ast_error.jl")
-include("utils/tree_print.jl")
-include("utils/expr_utils.jl")
-include("utils/type_from_ast.jl")
-include("utils/skip.jl")
-include("utils/exported.jl")
+using .Utils
 
 include("TranspilerConfig.jl")
 
@@ -39,7 +26,7 @@ include("stages/type_inference/includes.jl")
 # GLSL-specific stuff
 include("pipelines/glsl/includes.jl")
 
-# Public API stuff for transpilation
+# Public API for transpilation
 include("transpile.jl")
 
 using JuliaGLM

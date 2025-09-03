@@ -1,5 +1,3 @@
-import ...SymbolResolution: USYM_INFIX
-
 function run_glsl_transform(
     mod::Module, pipeline_ctx::GLSLPipelineContext, typed_ast::TypedASTNode, root_scope::Ref{Scope}, usyms::Vector{TypedUniqueSymbol}
 )

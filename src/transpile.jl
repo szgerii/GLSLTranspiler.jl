@@ -6,7 +6,7 @@ macro transpile(pipeline, f::Expr, verbose=false)
     output = gensym()
 
     quote
-        ($def, $output) = GLSLTranspiler.run_pipeline($(esc(pipeline)), $(QuoteNode(f)), $__module__; verbose=$(esc(verbose)))
+        ($def, $output) = Transpiler.run_pipeline($(esc(pipeline)), $(QuoteNode(f)), $__module__; verbose=$(esc(verbose)))
 
         $__module__.eval($def)
 
@@ -17,7 +17,9 @@ end
 function run_pipeline(pipeline::Pipeline, f::Expr, mod::Module; verbose::Bool=false)::Tuple{Expr,Any}
     Base.remove_linenums!(f)
 
-    println("Transpiling...")
+    if ccall(:jl_generating_output, Cint, ()) != 1
+        println("Transpiling...")
+    end
 
     if verbose
         println("Running '$(pipeline.name)' pipeline...\n")
@@ -27,7 +29,7 @@ function run_pipeline(pipeline::Pipeline, f::Expr, mod::Module; verbose::Bool=fa
         println()
 
         println("Original AST:")
-        print_traverse(f)
+        print_tree(f)
         println()
     end
 
@@ -81,7 +83,7 @@ function run_pipeline(pipeline::Pipeline, f::Expr, mod::Module; verbose::Bool=fa
             if verbose
                 println("\n<$name>:")
                 if output isa AbstractTree
-                    print_traverse(formatted)
+                    print_tree(formatted)
                 elseif !isnothing(formatted)
                     println(formatted)
                 end
