@@ -1,3 +1,10 @@
+using Pkg
+Pkg.activate(@__DIR__() * "/../")
+
+using Transpiler
+using Transpiler.GLSL
+using JuliaGLM
+
 code = @transpile(
     Transpiler.GLSL.glsl_pipeline,
     function mat_test(@out(frag_col::Vec4))

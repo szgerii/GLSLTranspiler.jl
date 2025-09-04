@@ -1,3 +1,10 @@
+using Pkg
+Pkg.activate(@__DIR__() * "/../")
+
+using Transpiler
+using Transpiler.GLSL
+using JuliaGLM
+
 code = @transpile(
     Transpiler.GLSL.glsl_pipeline,
     function shadertoy_demo(
