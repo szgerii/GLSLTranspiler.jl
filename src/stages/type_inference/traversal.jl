@@ -13,7 +13,7 @@ function gen_typed_ast(node::ScopedASTNode, ::Type{ExprTag}, ctx::TIContext)::Ty
 
     typed_node = TypedASTNode(node)
 
-    for (i, child) in enumerate(node.children)
+    for child in node.children
         child_node = gen_typed_ast(child, ctx)
         push!(typed_node.children, child_node)
     end
@@ -24,13 +24,18 @@ function gen_typed_ast(node::ScopedASTNode, ::Type{ExprTag}, ctx::TIContext)::Ty
 end
 
 function gen_typed_ast(node::ScopedASTNode, ::Type{SymbolTag}, ctx::TIContext)::TypedASTNode
-    idx = find_usym_index(node.original[], ctx)
-
     tast_type = nothing
 
     # search in determined types...
+    idx = find_usym_index(node.original[], ctx)
+
     if !isnothing(idx)
         tast_type = ctx.typed_usyms[idx][2]
+    end
+
+    # ...then among helper functions
+    if has_helper(ctx.pipeline_ctx, node.original[])
+        tast_type = ASTFunction
     end
 
     # ...then in the calling module's scope

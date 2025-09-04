@@ -9,6 +9,11 @@ function run_sr(mod::Module, pipeline_ctx::PipelineContext, scoped_ast::ScopedAS
         add_mapping!(ctx, env_sym, FUNCTION_SCOPE_ID, usym)
     end
 
+    # fn name and params
+    fn_name = scoped_ast.original[].args[1].args[1]
+    usym = reg_env_usym!(ctx, fn_name)
+    add_mapping!(ctx, fn_name, FUNCTION_SCOPE_ID, usym)
+
     # collect how each symbol is used per scope
     collect_sym_usage!(ctx, scoped_ast)
 

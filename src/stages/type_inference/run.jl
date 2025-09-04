@@ -9,7 +9,7 @@ function run_type_inference(
     fdecl = scoped_ast.children[1].original[]
 
     fname = fdecl.args[1]
-    add_type!(ctx, get_usym_id(fname, FUNCTION_SCOPE_ID), ASTFunction)
+    add_type!(ctx, fname, ASTFunction)
 
     for param_decl in fdecl.args[2:end]
         if !(param_decl isa Expr)

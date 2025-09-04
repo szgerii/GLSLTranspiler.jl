@@ -52,7 +52,9 @@ function gen_usyms!(ctx::SRContext, scope::Ref{Scope})
         # usym == nothing => skip
         # usym isa UniqueSymbol => add mapping between sym and usym in the current scope
         usym = missing
-        if scope_source == SymGlobalDeclaration
+        if sym in ctx.skipped_syms
+            usym = nothing
+        elseif scope_source == SymGlobalDeclaration
             @assert isdefined(ctx.defining_module, sym) "Symbol '$sym' with global declaration couldn't be found in the defining module (scope #$(id_chain_string(scope[].id_chain)))"
 
             usym = get(ctx.usyms, get_usym_id(sym, GLOBAL_SCOPE_ID), nothing)

@@ -1,4 +1,4 @@
-export UniqueSymbol, get_usym_id, USYM_INFIX, is_usym_id
+export UniqueSymbol, get_usym_id, USYM_INFIX, is_usym_id, strip_usym_id
 
 struct UniqueSymbol
     id::Symbol
@@ -16,3 +16,6 @@ get_usym_id(original_sym::Symbol, scope::Ref{Scope}) = get_usym_id(original_sym,
 
 is_usym_id(str::String) = contains(str, USYM_INFIX)
 is_usym_id(sym::Symbol) = is_usym_id(string(sym))
+
+strip_usym_id(str::String) = split(str, USYM_INFIX)[1]
+strip_usym_id(sym::Symbol) = strip_usym_id(string(sym)) |> Symbol

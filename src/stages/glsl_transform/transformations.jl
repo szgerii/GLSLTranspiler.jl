@@ -54,7 +54,7 @@ function glsl_transform!(state::GLSLTransformState, ::Type{AssignmentTag}, ctx::
     @assert length(state.children) == 2
 
     lhs = state.children[1].glsl_node
-    @assert lhs isa GLSLSymbol || (lhs isa GLSLSwizzle && length(lhs.swizzle) == 1)
+    @assert lhs isa GLSLSymbol || lhs isa GLSLSwizzle
 
     state.glsl_node = GLSLAssignment(lhs, state.children[2].glsl_node)
 end

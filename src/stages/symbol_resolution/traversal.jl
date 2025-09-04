@@ -26,7 +26,8 @@ function collect_sym_usage!(ctx::SRContext, node::ScopedASTNode, ::Type{ExprTag}
         ctx.scoped_sym_usages[node.scope[].id_chain] = scope_ctx.sym_usages
     end
 
-    for child in node.children
+    traversed_children = expr.head == :function ? node.children[2:end] : node.children
+    for child in traversed_children
         collect_sym_usage!(ctx, child)
     end
 end

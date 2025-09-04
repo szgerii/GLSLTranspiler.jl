@@ -13,9 +13,11 @@ function run_glsl_transform(
     pushfirst!(glsl_ast.body, GLSLComment("BODY", false))
     pushfirst!(glsl_ast.body, GLSLNewLine())
 
+    fn_name = typed_ast.original[].args[1].args[1]
     params = get_param_names(typed_ast.original[])
-    interface_decls = GLSLDeclaration[]
+    param_decls = GLSLDeclaration[]
     env_syms = get_env_syms(pipeline_ctx)
+    in_helper = get_in_helper(pipeline_ctx)
 
     for usym in usyms
         is_param = usym.original_sym in params && usym.def_scope_id == FUNCTION_SCOPE_ID
@@ -30,7 +32,13 @@ function run_glsl_transform(
             original_sym = split(string(usym.id), USYM_INFIX)[1] |> Symbol
             param_decl = get_param(typed_ast.original[], original_sym)
 
-            push!(interface_decls, GLSLDeclaration(sym_node, to_glsl_type(usym.type), param_decl.args[4]))
+            qualifiers = (param_decl isa Expr && param_decl.head == :decl) ? param_decl.args[4] : Qualifier[]
+
+            if !in_helper && !any(q -> q isa Union{InQualifier,OutQualifier,UniformQualifier}, qualifiers)
+                ast_error(param_decl, "Function acting as main entry point for GLSL shader cannot have parameters that are not marked with either in/out/uniform")
+            end
+
+            push!(param_decls, GLSLDeclaration(sym_node, to_glsl_type(usym.type), qualifiers))
         elseif !(sym_node.sym in env_syms)
             decl = find_decl(typed_ast, sym_node.sym)
 
@@ -47,9 +55,21 @@ function run_glsl_transform(
     pushfirst!(glsl_ast.body, GLSLComment("USYM DECLARATIONS", false))
     pushfirst!(glsl_ast.body, GLSLNewLine())
 
-    shader = GLSLShader(interface_decls, glsl_ast)
+    if in_helper && typed_ast.type == typed_ast.children[end].type && !(typed_ast.children[end].original[] isa Expr && typed_ast.children[end].original[].head == :return)
+        glsl_ast.body[end] = GLSLReturn(glsl_ast.body[end])
+    end
 
-    (shader)
+    if in_helper
+        sort!(param_decls; by=decl -> begin
+            idx = findfirst(param_sym -> param_sym == strip_usym_id(decl.symbol.sym), params)
+        end)
+    end
+
+    output = in_helper ?
+             GLSLFunction(fn_name, param_decls, to_glsl_type(typed_ast.type), GLSLBlock(glsl_ast.body)) :
+             GLSLShader(param_decls, glsl_ast)
+
+    (output)
 end
 
 glsl_ast_string(misc::Any, indent=0) = repeat(' ', indent) * string(misc) * "\n"
@@ -87,7 +107,9 @@ function find_decl(node::TypedASTNode, sym::Symbol)::Union{TypedASTNode,Nothing}
 
         if expr.head in [:local, :global, :decl]
             if expr.head in [:local, :global]
-                var_sym = node.children[1].original[] isa Symbol ? node.children[1].original[] : node.children[1].children[1].original[]
+                var_sym = node.children[1].original[] isa Symbol ?
+                          node.children[1].original[] :
+                          node.children[1].children[1].original[]
             else
                 var_sym = node.children[1].original[].value
             end

@@ -10,10 +10,11 @@ struct SRContext
     usyms::Dict{Symbol,UniqueSymbol} # usym_id => UniqueSymbol
     usym_mappings::ScopedUSymMapping
     env_syms::Vector{Symbol}
+    skipped_syms::Vector{Symbol}
 end
 
 SRContext(defining_module::Module, root_scope::Ref{Scope}) =
-    SRContext(defining_module, root_scope, ScopedSymbolUsageTable(), Dict(), ScopedUSymMapping(), Vector())
+    SRContext(defining_module, root_scope, ScopedSymbolUsageTable(), Dict(), ScopedUSymMapping(), Vector(), Vector())
 
 function reg_env_usym!(ctx::SRContext, sym::Symbol)::UniqueSymbol
     usym = UniqueSymbol(sym, sym, FUNCTION_SCOPE_ID)

@@ -62,6 +62,19 @@ end
     body::GLSLBlock
 end
 
+@exported struct GLSLFunction <: GLSLASTNode
+    name::GLSLSymbol
+    params::Vector{GLSLDeclaration}
+    ret_type::DataType
+    body::GLSLBlock
+
+    GLSLFunction(name::GLSLSymbol, params::Vector{GLSLDeclaration}, ::Type{RetT}, body::GLSLBlock) where {RetT<:GLSLType} =
+        new(name, params, RetT, body)
+end
+
+GLSLFunction(name::Symbol, params::Vector{GLSLDeclaration}, ::Type{RetT}, body::GLSLBlock) where {RetT<:GLSLType} =
+    GLSLFunction(GLSLSymbol(name), params, RetT, body)
+
 @exported struct GLSLSwizzle <: GLSLASTNode
     base::GLSLASTNode
     swizzle::String
@@ -72,11 +85,6 @@ precomp_subtypes(GLSLASTNode, GLSLSwizzle, (missing, String))
 @exported struct GLSLAssignment <: GLSLASTNode
     lhs::Union{GLSLSymbol,GLSLSwizzle}
     rhs::GLSLASTNode
-
-    function GLSLAssignment(lhs::Union{GLSLSymbol,GLSLSwizzle}, rhs::GLSLASTNode)
-        @assert lhs isa GLSLSymbol || length(lhs.swizzle) == 1
-        new(lhs, rhs)
-    end
 end
 
 @exported struct GLSLCall <: GLSLASTNode

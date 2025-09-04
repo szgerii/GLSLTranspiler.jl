@@ -44,6 +44,7 @@ function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTCallTag}, ctx::TIC
     @assert fsym.original[] isa Symbol || (fsym.original[] isa Expr && fsym.original[].head == :(.))
 
     sym_ref = fsym.original[] isa Symbol
+    is_helper = sym_ref && has_helper(ctx.pipeline_ctx, fsym.original[])
 
     if sym_ref
         arg_types = map(arg -> arg.type, args)
@@ -75,13 +76,30 @@ function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTCallTag}, ctx::TIC
         end
     end
 
-    if sym_ref && !isdefined(ctx.defining_module, fsym.original[])
+    if sym_ref && !has_helper(ctx.pipeline_ctx, fsym.original[]) && !isdefined(ctx.defining_module, fsym.original[])
         ast_error(node.original[],
-            "Couldn't find function '$(fsym.original[])' in the definition's module or in the environment function list.")
+            "Couldn't find function '$(fsym.original[])' in the definition's module, the helper function list or in the built-in function list.")
     end
 
-    f = sym_ref ? getfield(ctx.defining_module, fsym.original[]) : resolve_module_chain(fsym.original[], ctx.defining_module)
     args_tuple = Tuple(map(arg -> to_ast(arg.type), args[first_arg_idx:end]))
+
+    if is_helper
+        tast_args_tuple = map(T -> to_tast(T), args_tuple)
+        @assert !any(isnothing, tast_args_tuple)
+
+        rtype = get_helper_ret_type(ctx.pipeline_ctx, fsym.original[], tast_args_tuple)
+
+        if !ismissing(rtype)
+            @assert rtype <: ASTType
+
+            node.type = rtype
+            return
+        end
+    end
+
+    f = sym_ref ?
+        getfield(ctx.defining_module, fsym.original[]) :
+        resolve_module_chain(fsym.original[], ctx.defining_module)
 
     if fsym.original[] == :broadcast
         f_type = ctx.defining_module.eval(:(typeof($(args[1].original[]))))
@@ -99,10 +117,7 @@ function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTCallTag}, ctx::TIC
         node.type = ASTVoid
     elseif length(rtypes) == 1
         if rtypes[1] in [Union{}, Any]
-            println(f)
-            println(args_tuple)
             ct = Base.code_typed(f, args_tuple; optimize=false, debuginfo=:none)
-            println(ct)
             @assert length(ct) == 1
 
             rtypes[1] = ct[1].second
@@ -119,7 +134,6 @@ function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTCallTag}, ctx::TIC
 
         node.type = tast_type
     else
-        # TODO maybe infer from code_typed
         ast_error(node.original[],
             "Couldn't clearly infer return type for function $f called with arguments of type $args_tuple, possible return types are: $rtypes")
     end

@@ -1,6 +1,7 @@
-function run_glsl_code_gen(mod::Module, pipeline_ctx::GLSLPipelineContext, glsl_ast::GLSLASTNode)::String
-    @assert glsl_ast isa GLSLShader "The GLSL AST must have a GLSLShader node as its root"
+run_glsl_code_gen(mod::Module, ::GLSLPipelineContext, glsl_ast::GLSLASTNode) =
+    error("The GLSL AST must have a GLSLShader or GLSLFunction node as its root")
 
+function run_glsl_code_gen(mod::Module, pipeline_ctx::GLSLPipelineContext, glsl_ast::GLSLShader)::String
     ctx = GLSLCodeGenContext(mod)
 
     code = "#version 330 core\n\n"
@@ -14,9 +15,33 @@ function run_glsl_code_gen(mod::Module, pipeline_ctx::GLSLPipelineContext, glsl_
         code *= "\n"
     end
 
+    for (_, transpiled_helper) in pipeline_ctx.helpers
+        code *= transpiled_helper * "\n"
+    end
+
     code *= "void main() {\n"
     code *= glsl_cg_traverse(glsl_ast.body, ctx)
     code *= "}"
+
+    code
+end
+
+function run_glsl_code_gen(mod::Module, pipeline_ctx::GLSLPipelineContext, glsl_ast::GLSLFunction)::String
+    ctx = GLSLCodeGenContext(mod)
+
+    code = type_to_str(glsl_ast.ret_type) * " " * glsl_cg_traverse(glsl_ast.name, ctx) * "("
+
+    for param in glsl_ast.params
+        code *= glsl_cg_traverse(param, ctx) * ", "
+    end
+
+    if !isempty(glsl_ast.params)
+        code = code[1:end-2]
+    end
+
+    code *= ") {"
+    code *= glsl_cg_traverse(glsl_ast.body, ctx)
+    code *= "}\n"
 
     code
 end
