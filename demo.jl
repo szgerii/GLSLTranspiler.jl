@@ -183,7 +183,7 @@ j = 1
     true
 )
 
-@skip code = @transpile(
+code = @transpile(
     Transpiler.GLSL.glsl_pipeline,
     function sdf_disk(
         @out(frag_col::Vec4),
@@ -214,7 +214,7 @@ j = 1
 
         frag_col = Vec4(col, 1.0)
     end,
-    false
+    true
 )
 
 #println(code)
@@ -237,7 +237,7 @@ j = 1
     false
 )
 
-code = @transpile(
+@skip code = @transpile(
     Transpiler.GLSL.glsl_pipeline,
     function mat_test(@out(frag_col::Vec4))
         m2 = mat2(1, 2, 3, 4)

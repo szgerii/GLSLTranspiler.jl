@@ -89,7 +89,7 @@ function gen_usyms!(ctx::SRContext, scope::Ref{Scope})
 
         @assert !ismissing(usym) "Failed to determine mapping for symbol '$sym' in scope #$(id_chain_string(scope[].id_chain))"
 
-        if isnothing(usym)
+        if isnothing(usym) || usym.id in ctx.env_syms
             continue
         end
 
