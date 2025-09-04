@@ -13,6 +13,8 @@ struct WhileTag <: ASTConstructTag end
 struct SwizzleTag <: ASTConstructTag end
 struct IndexerTag <: ASTConstructTag end
 struct LogicalOperatorTag <: ASTConstructTag end
+struct BreakTag <: ASTConstructTag end
+struct ContinueTag <: ASTConstructTag end
 
 @def_pre_rules(
     ASTConstructTag,
@@ -69,6 +71,8 @@ Tagger.get_eq_projection(::Type{ASTConstructTag}, ::Type{TypedASTNode}) =
     (ReturnTag, :return),
     (DeclTag, :global, :local),
     (WhileTag, :while),
-    (LogicalOperatorTag, :(&&), :(||))
+    (LogicalOperatorTag, :(&&), :(||)),
+    (BreakTag, :break),
+    (ContinueTag, :continue)
     #    (ForTag, :for),
 )

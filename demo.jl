@@ -145,21 +145,6 @@ j = 1
     end
 )
 
-@skip @transpile(
-    Transpiler.GLSL.glsl_pipeline,
-    function shadertoy_demo(
-        @out(frag_color::Vec4),
-        @uniform(time::Float32),
-        @uniform(resolution::IVec2)
-    )
-        uv = gl_FragCoord["xy"] ./ resolution
-
-        col = 0.5f0 .+ 0.5f0 .* cos.(time .+ uv["xyx"] + Vec3(0, 2, 4))
-
-        frag_color = Vec4(col, 1.0f0)
-    end,
-    true
-)
 
 @skip @transpile(
     Transpiler.GLSL.glsl_pipeline,
@@ -183,39 +168,7 @@ j = 1
     true
 )
 
-@skip code = @transpile(
-    Transpiler.GLSL.glsl_pipeline,
-    function sdf_disk(
-        @out(frag_col::Vec4),
-        @uniform(mouse::Vec4),
-        @uniform(resolution::IVec2)
-    )
-        p = (2.0 * gl_FragCoord[:xy] .- resolution["xy"]) ./ resolution["y"]
-        m = (2.0 * mouse["xy"] .- resolution["xy"]) ./ resolution["y"]
 
-        d = length(p) - 0.5
-
-        local col
-        if d > 0.0
-            col = Vec3(0.9, 0.6, 0.3)
-        else
-            col = Vec3(0.65, 0.85, 1.0)
-        end
-
-        col *= 1.0 - exp(-6.0 * abs(d))
-        col *= 0.8 + 0.2 * cos(150 * d)
-        col = mix(col, Vec3(1), 1.0 - smoothstep(0.0, 0.01, abs(d)))
-
-        if (mouse["z"] > 0.001)
-            d = length(m) - 0.5
-            col = mix(col, Vec3(1, 1, 0), 1.0 - smoothstep(0.0, 0.005, abs(length(p .- m) - abs(d)) - 0.0025))
-            col = mix(col, Vec3(1, 1, 0), 1.0 - smoothstep(0.0, 0.005, length(p .- m) - 0.015))
-        end
-
-        frag_col = Vec4(col, 1.0)
-    end,
-    false
-)
 
 #println(code)
 
@@ -237,32 +190,6 @@ j = 1
     false
 )
 
-@skip code = @transpile(
-    Transpiler.GLSL.glsl_pipeline,
-    function mat_test(@out(frag_col::Vec4))
-        m2 = mat2(1, 2, 3, 4)
-        m3 = mat3(1, 2, 3, 4, 5, 6, 7, 8, 9)
-        m4 = mat4(1, 0, 0, 0, 0, 2, 0, 0, 0, 0, 3, 0, 0, 0, 0, 4)
-
-        c0_m2 = m2[:, 1]
-        c1_m3 = m3[:, 2]
-        c2_m4 = m4[:, 3]
-
-        swizzled = c1_m3[:xy][:x]
-        elem = m2[1, 2]
-        elem_dup = m2[3]
-
-        mmul = m3 * m3'
-
-        frag_col = vec4(
-            c0_m2[:x] / 4.0,
-            elem / 4.0,
-            swizzled / 8.0,
-            1.0
-        )
-    end,
-    true
-)
 
 @skip code = @transpile(
     Transpiler.GLSL.glsl_pipeline,
@@ -281,71 +208,61 @@ j = 1
     false
 )
 
-@skip @transpile(
+@skip code = @transpile(
     Transpiler.GLSL.glsl_pipeline,
     function range_test()
-        acc = 0
-        n = 5
-        for i in 1:n
-            acc += i
-        end
+        a = 3
 
-        while n > 10
-            acc += n
+        local @constant x::Int
+        x = 2
+
+        #acc = 0
+        #n = 5
+        #for i in 1:n
+        #    acc += i
+        #end
+
+        #while n > 10
+        #    acc += n
+        #end
+        x + 2
+    end,
+    false
+)
+
+
+@skip Transpiler.Preprocessor.PreprocessorStage.run(
+    @__MODULE__(), Transpiler.CoreTypes.init_pipeline_ctx(Transpiler.GLSL.GLSLPipelineContext),
+    :(function preprocessor_test()
+        x, y, z = 1, 2, 3
+
+        cos.(vec3(1))
+
+        if x < y < z
+            x += y
         end
+    end)
+)
+
+some_global = 1
+some_other_global = 1
+
+code = @transpile(
+    Transpiler.GLSL.glsl_pipeline, function type_example()
+        x = 1.0
+        y = 2.0
+
+        z = x + y
+
+        mat = mat2x3(0)
+        t_mat = mat'
     end,
     true
 )
 
-code = @transpile(
-    Transpiler.GLSL.glsl_pipeline,
-    function rounded_box(
-        @out(frag_col::Vec4),
-        @uniform(resolution::IVec2),
-        @uniform(mouse::Vec4),
-        @uniform(time::Float32)
-    )
-        function sd_round_box(p::Vec2, b::Vec2, r::Vec4)
-            if p[:x] <= 0.0
-                r[:xy] = r[:zw]
-            end
 
-            if p[:y] <= 0.0
-                r[:x] = r[:y]
-            end
 
-            q = abs(p) - b .+ r[:x]
-
-            min(max(q[:x], q[:y]), 0.0) + length(max(q, 0.0)) - r[:x]
-        end
-
-        p = (2.0 * gl_FragCoord[:xy] - resolution[:xy]) ./ resolution[:y]
-        m = (2.0 * mouse[:xy] - resolution[:xy]) ./ resolution[:y]
-
-        si = vec2(0.9, 0.6) + 0.3 * cos(time .+ vec2(0, 2))
-        ra = 0.3 .+ 0.3 * cos(2.0 * time .+ vec4(0, 1, 2, 3))
-        ra = min(ra, min(si[:x], si[:y]))
-
-        d = sd_round_box(p, si, ra)
-
-        local col
-        if d > 0.0
-            col = vec3(0.9, 0.6, 0.3)
-        else
-            col = vec3(0.65, 0.85, 1.0)
-        end
-        col *= 1.0 - exp2(-20.0 * abs(d))
-        col *= 0.8 + 0.2 * cos(120.0 * d)
-        col = mix(col, vec3(1), 1.0 - smoothstep(0.0, 0.01, abs(d)))
-
-        if mouse[:z] > 0.001
-            d = sd_round_box(m, si, ra)
-            col = mix(col, vec3(1, 1, 0), 1.0 - smoothstep(0.0, 0.005, abs(length(p - m) - abs(d)) - 0.0025))
-            col = mix(col, vec3(1, 1, 0), 1.0 - smoothstep(0.0, 0.005, length(p - m) - 0.015))
-        end
-
-        frag_col = vec4(col, 1)
-    end
-)
 
 println(code)
+
+

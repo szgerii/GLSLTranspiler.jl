@@ -181,6 +181,20 @@ function transpile_helpers!(ctx::PipelineContext, pipeline::Pipeline, f::Expr, m
 
     set_in_helper!(ctx, true)
 
+    param_env_syms = []
+    for param in get_param_names(f)
+        decl = get_param(f, param)
+
+        @assert !(decl isa Symbol)
+        if decl.head == :decl
+            push!(param_env_syms, (param, TypeInference.to_ast(decl.args[2])))
+        elseif decl.head == :(::)
+            push!(param_env_syms, (param, decl.args[2]))
+        else
+            ast_error(decl, "Invalid function parameter declaration")
+        end
+    end
+
     helper_count = 0
     for arg in f.args[2].args
         if !(arg isa Expr && arg.head == :function)
@@ -189,9 +203,17 @@ function transpile_helpers!(ctx::PipelineContext, pipeline::Pipeline, f::Expr, m
 
         verbose && println("Transpiling helper function $(arg.args[1].args[1])...")
 
+        for pes in param_env_syms
+            add_env_sym!(ctx, pes...)
+        end
+
         (def, output, helpers) = run_pipeline(pipeline, arg, mod, ctx; verbose=verbose)
 
         @assert isempty(helpers) "Nested helper functions are not allowed"
+
+        for pes in param_env_syms
+            remove_env_sym!(ctx, pes[1])
+        end
 
         add_helper!(ctx, (def, output))
         helper_count += 1

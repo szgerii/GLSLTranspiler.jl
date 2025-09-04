@@ -105,6 +105,9 @@ function glsl_cg_traverse(node::GLSLReturn, ctx::GLSLCodeGenContext)
     code
 end
 
+glsl_cg_traverse(node::GLSLBreak, ::GLSLCodeGenContext) = "break"
+glsl_cg_traverse(node::GLSLContinue, ::GLSLCodeGenContext) = "continue"
+
 function glsl_cg_traverse(node::GLSLIf, ctx::GLSLCodeGenContext)
     code = "if (" * glsl_cg_traverse(node.condition, ctx) * ") {\n"
     code *= glsl_cg_traverse(node.body, ctx)

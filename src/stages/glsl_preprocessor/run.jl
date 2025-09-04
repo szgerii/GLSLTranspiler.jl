@@ -12,14 +12,10 @@ function run_glsl_preprocessor(mod::Module, pipeline_ctx::GLSLPipelineContext, a
         end
     end
 
-    shader_ctx = GLSLShaderContext()
-
     fbody = ast.args[2]
     @assert fbody isa Expr && fbody.head == :block
 
     ast.args[2] = glsl_preprocess(fbody, mod, pipeline_ctx)
-
-    pipeline_ctx.shader_ctx = shader_ctx
 
     ast
 end

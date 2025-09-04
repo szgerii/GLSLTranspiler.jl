@@ -8,7 +8,7 @@ struct FnDefTag <: ScopeDiscoveryTag end
     ScopeDiscoveryTag,
     (SoftTag, :for, :while, :try),
     # :comprehension nodes are also supposed to introduce new hard scopes
-    # but i couldn't find a case where a comprehension isn't just a wrapper for a generator
+    # but i couldn't find a case where a comprehension isn't just a wrapper for a :generator
     # so they are skipped for simplicity
     (HardTag, :function, :let, :(->), :generator),
 )

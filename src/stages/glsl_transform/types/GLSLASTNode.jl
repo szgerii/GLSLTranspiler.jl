@@ -100,6 +100,9 @@ precomp_subtypes(AbstractGLSLSymbol, GLSLCall, (missing, Vararg{GLSLASTNode}), f
     body::Union{GLSLASTNode,Nothing}
 end
 
+@exported struct GLSLBreak <: GLSLASTNode end
+@exported struct GLSLContinue <: GLSLASTNode end
+
 @exported mutable struct GLSLIf <: GLSLASTNode
     condition::GLSLASTNode
     body::GLSLBlock

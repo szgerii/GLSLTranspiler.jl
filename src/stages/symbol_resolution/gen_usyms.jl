@@ -84,7 +84,7 @@ function gen_usyms!(ctx::SRContext, scope::Ref{Scope})
             elseif isdefined(ctx.defining_module, sym)
                 usym = reg_usym!(ctx, sym, get_root(scope))
             else
-                error("Couldn't find mapping for usage-only symbol '$sym' in scope #$(id_chain_string(scope[].id_chain)).",
+                error("Couldn't find mapping for usage-only symbol '$sym' in scope #$(id_chain_string(scope[].id_chain)) ",
                     "A definition couldn't be found in an upper local scope, and it couldn't be captured from the defining module either.")
             end
         end

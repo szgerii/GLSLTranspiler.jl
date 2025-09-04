@@ -61,7 +61,14 @@ set_in_helper!(::PipelineContext, ::Bool) =
 get_helper_ret_type(::PipelineContext, ::Symbol, ::Tuple)::Union{DataType,Missing} =
     error("Invalid pipeline context: pipeline uses helper functions, but doesn't define a method for get_helper_ret_type(ctx, name::Symbol, sig::Tuple)")
 add_helper_ret_type!(::PipelineContext, ::Symbol, ::Tuple, ::DataType) =
-    error("Invalid pipeline context: pipeline uses helper functions, but doesn't define a method for add_helper_ret_type(ctx, name::Symbol, sig::Tuple, ret_type::DataType)")
+    error("Invalid pipeline context: pipeline uses helper functions, but doesn't define a method for add_helper_ret_type!(ctx, name::Symbol, sig::Tuple, ret_type::DataType)")
+
+export add_env_sym!, remove_env_sym!
+
+add_env_sym!(::PipelineContext, ::Symbol, ::DataType) =
+    error("Invalid pipeline context: pipeline uses helper functions, but doesn't define a method for add_env_sym!(ctx, name::Symbol, type::DataType)")
+remove_env_sym!(::PipelineContext, ::Symbol) =
+    error("Invalid pipeline context: pipeline uses helper functions, but doesn't define a method for remove_env_sym!(ctx, name::Symbol)")
 
 struct Pipeline
     name::String

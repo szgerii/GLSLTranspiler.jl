@@ -1,7 +1,8 @@
 export GLSLPipelineContext
 
+const GLSLVarList = Vector{Tuple{Symbol,DataType}}
+
 mutable struct GLSLPipelineContext <: PipelineContext
-    shader_ctx::Union{GLSLShaderContext,Missing}
     env_syms::GLSLVarList
     def_transform::Union{Function,Nothing,Missing}
     helpers::Vector{Tuple{Expr,Any}}
@@ -16,9 +17,8 @@ function remove_env_sym_decls!(f::Expr, pipeline_ctx::GLSLPipelineContext)
     i = 1
     while i <= length(body.args) && body.args[i] isa Expr && body.args[i].head == :local
         sym = body.args[i].args[1]
-        @assert sym isa Symbol
 
-        if sym in env_syms
+        if sym isa Symbol && sym in env_syms
             popat!(body.args, i)
         else
             i += 1
@@ -32,7 +32,7 @@ const gl_vars = [
 ]
 
 CoreTypes.init_pipeline_ctx(::Type{GLSLPipelineContext}) =
-    GLSLPipelineContext(missing, deepcopy(gl_vars), remove_env_sym_decls!, Vector(), Dict(), false)
+    GLSLPipelineContext(deepcopy(gl_vars), remove_env_sym_decls!, Vector(), Dict(), false)
 
 CoreTypes.get_def_transform(ctx::GLSLPipelineContext) = ctx.def_transform
 
@@ -43,6 +43,23 @@ CoreTypes.get_helpers(ctx::GLSLPipelineContext) = ctx.helpers
 
 CoreTypes.get_in_helper(ctx::GLSLPipelineContext) = ctx.in_helper
 CoreTypes.set_in_helper!(ctx::GLSLPipelineContext, val::Bool) = (ctx.in_helper = val)
+
+function CoreTypes.add_env_sym!(ctx::GLSLPipelineContext, name::Symbol, type::DataType)
+    if any(es -> es[1] == name, ctx.env_syms)
+        error("Trying to add already existing env sym to GLSL pipeline context: $name")
+    end
+
+    push!(ctx.env_syms, (name, type))
+end
+
+function CoreTypes.remove_env_sym!(ctx::GLSLPipelineContext, name::Symbol)
+    idx = findfirst(es -> es[1] == name, ctx.env_syms)
+    if isnothing(idx)
+        error("Trying to remove non-existent env sym from GLSL pipeline context: $name")
+    end
+
+    popat!(ctx.env_syms, idx)
+end
 
 function CoreTypes.add_helper_ret_type!(ctx::GLSLPipelineContext, name::Symbol, sig::Tuple, ::Type{RetType}) where {RetType<:ASTType}
     key = (name, sig)

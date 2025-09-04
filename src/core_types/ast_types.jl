@@ -5,7 +5,7 @@ const ast_literal_types = [
     Int64, Int32,
     UInt64, UInt32,
     String, Char,
-    Bool, Nothing
+    Bool, Nothing, Missing
 ]
 
 const ASTLiteral = Union{ast_literal_types...}

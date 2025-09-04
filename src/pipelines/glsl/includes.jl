@@ -9,7 +9,6 @@ using JuliaGLM
 
 include("types/Qualifiers.jl")
 include("types/ShaderVar.jl")
-include("GLSLShaderContext.jl")
 include("types/GLSLPipelineContext.jl")
 include("builtin_fns.jl")
 

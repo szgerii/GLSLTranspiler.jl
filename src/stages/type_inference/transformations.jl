@@ -46,6 +46,15 @@ function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTCallTag}, ctx::TIC
     sym_ref = fsym.original[] isa Symbol
     is_helper = sym_ref && has_helper(ctx.pipeline_ctx, fsym.original[])
 
+    if sym_ref && fsym.original[] == :(/) && length(node.children[2:end]) >= 2
+        arg_type = node.children[2].type
+
+        if all(T -> arg_type == T, node.children[3:end])
+            node.type = arg_type
+            return
+        end
+    end
+
     if sym_ref
         arg_types = map(arg -> arg.type, args)
         ret = builtin_fn_ret_type(ctx.pipeline_ctx, Val(fsym.original[]), arg_types...)
@@ -94,6 +103,9 @@ function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTCallTag}, ctx::TIC
 
             node.type = rtype
             return
+        else
+            println("WARNING: Possible missed function call to local function $(fsym.original[]).\n",
+                "Function was called with type signature $(tast_args_tuple), which is not a valid signature for the function.")
         end
     end
 
@@ -113,6 +125,7 @@ function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTCallTag}, ctx::TIC
 
     rtypes = collect(Set(Base.return_types(f, args_tuple)))
 
+    node.type = Missing
     if length(rtypes) == 0 || (rtypes == [Nothing])
         node.type = ASTVoid
     elseif length(rtypes) == 1
@@ -123,17 +136,19 @@ function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTCallTag}, ctx::TIC
             rtypes[1] = ct[1].second
         end
 
-        @assert !(rtypes[1] in [Union{}, Any])
+        if !(rtypes[1] in [Union{}, Any])
+            # clear return type
+            tast_type = to_tast(rtypes[1])
 
-        # clear return type
-        tast_type = to_tast(rtypes[1])
+            if isnothing(tast_type)
+                ast_error(node.original[], "Function $f returns invalid type: ", rtypes[1])
+            end
 
-        if isnothing(tast_type)
-            ast_error(node.original[], "Function $f returns invalid type: ", rtypes[1])
+            node.type = tast_type
         end
+    end
 
-        node.type = tast_type
-    else
+    if node.type == Missing
         ast_error(node.original[],
             "Couldn't clearly infer return type for function $f called with arguments of type $args_tuple, possible return types are: $rtypes")
     end

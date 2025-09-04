@@ -116,6 +116,18 @@ function glsl_transform!(state::GLSLTransformState, ::Type{ReturnTag}, ctx::GTCo
     state.glsl_node = ret_type <: ASTValueType ? GLSLReturn(ret_node) : GLSLReturn(nothing)
 end
 
+function glsl_transform!(state::GLSLTransformState, ::Type{BreakTag}, ctx::GTContext)
+    transform_children!(state, ctx)
+
+    state.glsl_node = GLSLBreak()
+end
+
+function glsl_transform!(state::GLSLTransformState, ::Type{ContinueTag}, ctx::GTContext)
+    transform_children!(state, ctx)
+
+    state.glsl_node = GLSLContinue()
+end
+
 function glsl_transform!(state::GLSLTransformState, ::Type{DeclTag}, ctx::GTContext)
     state.glsl_node = GLSLEmptyNode()
 end
