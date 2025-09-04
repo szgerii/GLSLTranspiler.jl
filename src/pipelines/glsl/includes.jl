@@ -2,12 +2,15 @@ module GLSL
 
 import ..Transpiler
 using ..CoreTypes
+using ..Utils
 using ..TypeInference
 
 using JuliaGLM
 
+include("types/Qualifiers.jl")
+include("types/ShaderVar.jl")
 include("GLSLShaderContext.jl")
-include("GLSLPipelineContext.jl")
+include("types/GLSLPipelineContext.jl")
 include("builtin_fns.jl")
 
 include("../../stages/glsl_preprocessor/includes.jl")

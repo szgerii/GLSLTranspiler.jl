@@ -1,3 +1,4 @@
+#=
 export @in, @out, @uniform
 
 macro in(decl)
@@ -17,3 +18,4 @@ macro uniform(decl)
 
     Expr(:glsl_var, QuoteNode(:uniform), QuoteNode(decl.args[1]), QuoteNode(decl.args[2]))
 end
+=#

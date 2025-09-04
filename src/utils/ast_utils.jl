@@ -1,4 +1,4 @@
-export get_param_names, resolve_module_chain, ast_error, try_type_from_ast, type_from_ast
+export get_param_names, get_param, find_decl, replace_decls, resolve_module_chain, ast_error, try_type_from_ast, type_from_ast
 
 function ast_error(node::ASTNode, message...)
     str = ast_string(node)
@@ -31,20 +31,50 @@ ast_string(str::String) = "\"$str\""
 ast_string(node::ASTNode) = string(node)
 
 function get_param_names(f::Expr)::Vector{Symbol}
+    @assert f.head == :function
+
     params = Vector{Symbol}()
     fdecl = f.args[1]
 
     for param_decl in fdecl.args[2:end]
-        @assert param_decl isa Symbol || (param_decl isa Expr && param_decl.head == :(::))
+        @assert param_decl isa Symbol || (param_decl isa Expr && param_decl.head in [:(::), :decl])
 
         if param_decl isa Symbol
             push!(params, param_decl)
         elseif param_decl.head == :(::)
             push!(params, param_decl.args[1])
+        elseif param_decl.head == :decl
+            push!(params, param_decl.args[1].value)
         end
     end
 
     params
+end
+
+function get_param(f::Expr, name::Symbol)::Union{Expr,Symbol,Missing}
+    @assert f.head == :function
+
+    fdecl = f.args[1]
+
+    for param_decl in fdecl.args[2:end]
+        pname = missing
+
+        if param_decl isa Symbol
+            pname = param_decl
+        elseif param_decl.head == :(::)
+            pname = param_decl.args[1]
+        elseif param_decl.head == :decl
+            pname = param_decl.args[1].value
+        end
+
+        @assert !ismissing(pname)
+
+        if pname == name
+            return param_decl
+        end
+    end
+
+    return missing
 end
 
 function resolve_module_chain(expr::Expr, mod::Module)
@@ -64,6 +94,30 @@ function resolve_module_chain(expr::Expr, mod::Module)
     @assert isdefined(base_mod, expr.args[2].value)
 
     getfield(base_mod, expr.args[2].value)
+end
+
+function replace_decls(f::Expr)
+    @assert f.head == :function
+
+    replace_decls_traverse!(f)
+
+    f
+end
+
+function replace_decls_traverse!(node::ASTNode)
+    if node isa Expr
+        for (i, arg) in enumerate(node.args)
+            if arg isa Expr && arg.head == :decl
+                name = arg.args[1].value
+                type = arg.args[2]
+
+                node.args[i] = :($name::$type)
+                continue
+            end
+
+            replace_decls_traverse!(arg)
+        end
+    end
 end
 
 function try_type_from_ast(ex::Expr, mod::Module)::Union{DataType,Nothing}

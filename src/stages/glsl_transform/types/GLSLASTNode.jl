@@ -51,10 +51,10 @@ to_storage_qualifier(::Val{:uniform}) = SQ_Uniform
 @exported struct GLSLDeclaration <: GLSLASTNode
     symbol::GLSLSymbol
     type::DataType
-    storage_qualifier::GLSLStorageQualifier
+    qualifiers::Vector{Qualifier}
 
-    GLSLDeclaration(sym::GLSLSymbol, ::Type{T}, qualifier::GLSLStorageQualifier=SQ_None) where {T<:GLSLType} =
-        new(sym, T, qualifier)
+    GLSLDeclaration(sym::GLSLSymbol, ::Type{T}, qualifiers::Vector{Qualifier}=Qualifier[]) where {T<:GLSLType} =
+        new(sym, T, qualifiers)
 end
 
 @exported struct GLSLShader <: GLSLASTNode

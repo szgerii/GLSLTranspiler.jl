@@ -54,6 +54,6 @@ function sd_traverse(node::Expr, ctx::SDContext)::ScopedASTNode
     scoped_node
 end
 
-sd_traverse(node::Union{Symbol,ASTNode}, ctx::SDContext)::ScopedASTNode = ScopedASTNode(Ref(node), ctx.current_scope)
+sd_traverse(node::ASTNode, ctx::SDContext)::ScopedASTNode = ScopedASTNode(Ref(node), ctx.current_scope)
 
 precomp_union_types(Union{Symbol,ASTNode}, sd_traverse, (missing, SDContext))

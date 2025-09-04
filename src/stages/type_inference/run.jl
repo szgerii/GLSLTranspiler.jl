@@ -16,23 +16,32 @@ function run_type_inference(
             ast_error(scoped_ast.original[], "Couldn't transpile function without explicitly typed parameter '$param_decl'")
         end
 
-        if param_decl.head != :(::)
+        if !(param_decl.head in [:(::), :decl])
             ast_error(param_decl, "Unsupported parameter declaration")
         end
 
-        name_sym = param_decl.args[1]
-        type_sym = param_decl.args[2]
+        type = missing
+        if param_decl.head == :(::)
+            name_sym = param_decl.args[1]
+            type_sym = param_decl.args[2]
+
+            @assert type_sym isa Symbol
+
+            src_type = getfield(mod, type_sym)
+            type = to_tast(src_type)
+
+            if isnothing(type)
+                ast_error(param_decl, "Invalid method parameter type: $src_type (for parameter $name_sym)")
+            end
+        elseif param_decl.head == :decl
+            name_sym = param_decl.args[1].value
+            type = param_decl.args[2]
+
+            @assert type isa DataType && type <: ASTType
+        end
 
         @assert name_sym isa Symbol
-        @assert type_sym isa Symbol
-
-        pname = string(name_sym)
-        src_type = getfield(mod, type_sym)
-        tast_type = to_tast(src_type)
-
-        if isnothing(tast_type)
-            ast_error(param_decl, "Invalid method parameter type: $src_type (for parameter $pname)")
-        end
+        @assert type isa DataType
 
         target_usym_id = get_usym_id(name_sym, FUNCTION_SCOPE_ID)
         idx = find_usym_index(target_usym_id, ctx)
@@ -46,7 +55,7 @@ function run_type_inference(
             ast_error(param_decl, "Unique symbol for param $name_sym was not found in the output of the symbol resolution stage")
         end
 
-        add_type!(ctx, target_usym_id, tast_type)
+        add_type!(ctx, target_usym_id, type)
     end
 
     for env_sym in get_env_syms(pipeline_ctx)

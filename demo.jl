@@ -260,7 +260,8 @@ code = @transpile(
             swizzled / 8.0,
             1.0
         )
-    end
+    end,
+    true
 )
 
 println(code)

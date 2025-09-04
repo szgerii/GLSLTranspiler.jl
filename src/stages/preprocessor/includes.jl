@@ -16,7 +16,8 @@ const PreprocessorStage =
         "Preprocessor (AST -> AST)",
         run_preprocessor;
         output_names=["Preprocessed Function Definition"],
-        output_formatters=[identity]
+        output_formatters=[identity],
+        run_before_definition=true
     )
 
 end

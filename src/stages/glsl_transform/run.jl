@@ -14,10 +14,6 @@ function run_glsl_transform(
     pushfirst!(glsl_ast.body, GLSLNewLine())
 
     params = get_param_names(typed_ast.original[])
-    in_syms = map(var -> var[1], pipeline_ctx.shader_ctx.in_vars)
-    out_syms = map(var -> var[1], pipeline_ctx.shader_ctx.out_vars)
-    uniform_syms = map(var -> var[1], pipeline_ctx.shader_ctx.uniform_vars)
-
     interface_decls = GLSLDeclaration[]
     env_syms = get_env_syms(pipeline_ctx)
 
@@ -32,15 +28,18 @@ function run_glsl_transform(
         sym_node = GLSLSymbol(usym.id)
         if is_param
             original_sym = split(string(usym.id), USYM_INFIX)[1] |> Symbol
-            sq = (original_sym in in_syms ? SQ_In :
-                  (original_sym in out_syms ? SQ_Out :
-                   original_sym in uniform_syms ? SQ_Uniform : nothing))
+            param_decl = get_param(typed_ast.original[], original_sym)
 
-            @assert !isnothing(sq)
-
-            push!(interface_decls, GLSLDeclaration(sym_node, to_glsl_type(usym.type), sq))
+            push!(interface_decls, GLSLDeclaration(sym_node, to_glsl_type(usym.type), param_decl.args[4]))
         elseif !(sym_node.sym in env_syms)
-            pushfirst!(glsl_ast.body, GLSLDeclaration(sym_node, to_glsl_type(usym.type)))
+            decl = find_decl(typed_ast, sym_node.sym)
+
+            qualifiers = Qualifier[]
+            if !isnothing(decl) && decl.original[].head == :decl
+                qualifiers = decl.children[4].original[]
+            end
+
+            pushfirst!(glsl_ast.body, GLSLDeclaration(sym_node, to_glsl_type(usym.type), qualifiers))
         end
     end
 
@@ -80,6 +79,34 @@ function glsl_ast_string(node::GLSLASTNode, indent=0)::String
     end
 
     output
+end
+
+function find_decl(node::TypedASTNode, sym::Symbol)::Union{TypedASTNode,Nothing}
+    if node.original[] isa Expr
+        expr = node.original[]
+
+        if expr.head in [:local, :global, :decl]
+            if expr.head in [:local, :global]
+                var_sym = node.children[1].original[] isa Symbol ? node.children[1].original[] : node.children[1].children[1].original[]
+            else
+                var_sym = node.children[1].original[].value
+            end
+
+            if var_sym == sym
+                return node
+            end
+        end
+
+        for child in node.children
+            result = find_decl(child, sym)
+
+            if !isnothing(result)
+                return result
+            end
+        end
+    end
+
+    return nothing
 end
 
 precomp_subtypes(GLSLASTNode, glsl_ast_string, (missing, Int), false)

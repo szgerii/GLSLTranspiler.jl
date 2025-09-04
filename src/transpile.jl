@@ -10,6 +10,12 @@ macro transpile(pipeline, f::Expr, verbose=false)
 
         $__module__.eval($def)
 
+        if ($verbose)
+            println("\nDefined Julia function:")
+            println($def)
+            println()
+        end
+
         $output
     end
 end
@@ -44,6 +50,7 @@ function run_pipeline(pipeline::Pipeline, f::Expr, mod::Module; verbose::Bool=fa
     for stage in pipeline.stages
         if isnothing(def) && stage isa Stage && !stage.run_before_definition
             def = deepcopy(stage_data[1])
+            def = replace_decls(def)
             def_transform!(def, pipeline_ctx)
         end
 

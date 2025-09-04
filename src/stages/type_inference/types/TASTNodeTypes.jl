@@ -93,6 +93,10 @@ for (suffix, el_type) in MAT_EL_TYPES
     end
 end
 
+@exported struct ASTList{T} <: ASTType end
+Base.eltype(::Type{<:ASTList{T}}) where T = T
+Base.show(io::IO, ::Type{<:ASTList{T}}) where T = print(io, "ASTList{$T}")
+
 export ASTValueType
 
 const ASTValueType = Union{
@@ -102,7 +106,8 @@ const ASTValueType = Union{
     ASTFloat32,ASTFloat64,
     ASTChar,ASTString,
     vec_types...,
-    mat_types...
+    mat_types...,
+    ASTList
 }
 
 export to_ast, to_tast
@@ -158,3 +163,6 @@ for n in 2:4
         end
     end
 end
+
+to_tast(::Type{Vector{T}}) where T = ASTList{T}
+to_ast(::Type{ASTList{T}}) where T = Vector{T}

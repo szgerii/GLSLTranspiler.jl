@@ -34,18 +34,20 @@ using PrecompileTools: @compile_workload
 
 _precomp_global = 0.0f0
 
+using .GLSL
+
 # TODO profile for weak spots
 # Precompile
 @compile_workload begin
     @transpile GLSL.glsl_pipeline function shadertoy_demo(
         GLSL.@out(a::Vec4),
-        GLSL.@in(b::Float32),
-        GLSL.@uniform(c::IVec2)
+        @in(b::Float32),
+        @uniform(c::IVec2)
     )
         global _precomp_global
         _precomp_global = 0.0f0
 
-        local x
+        local @constant @flat x::Int
         x = 2
         y = 2.0f0
         z = 2.0
@@ -79,7 +81,7 @@ _precomp_global = 0.0f0
         y = v2[1]
         y = v3[1]
         y = v4[1]
-    end
+    end true
 end
 
 end

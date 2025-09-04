@@ -100,11 +100,13 @@ function collect_declaration!(ctx::ScopeContext, node::ScopedASTNode)
         sym = target
     elseif target isa Expr && target.head == :(::)
         sym = target.args[1]
-
-        @assert sym isa Symbol
+    elseif target isa Expr && target.head == :decl
+        sym = target.args[1].value
     else
         ast_error(expr, "Encountered declaration with unexpected structure")
     end
+
+    @assert sym isa Symbol
 
     add_usage!(ctx, sym, decl_type)
 end

@@ -9,5 +9,5 @@ const ast_literal_types = [
 ]
 
 const ASTLiteral = Union{ast_literal_types...}
-const ASTNode = Union{Expr,Symbol,QuoteNode,LineNumberNode,ASTLiteral}
-const ASTNodeRef = Union{map(T -> Ref{T}, Base.uniontypes(ASTNode))...}
+const ASTNode = Union{Expr,Symbol,QuoteNode,GlobalRef,LineNumberNode,ASTLiteral,DataType,Vector}
+const ASTNodeRef = Union{map(T -> Ref{T}, Base.uniontypes(ASTNode))...,Ref{<:DataType},Ref{<:Vector}}

@@ -23,6 +23,6 @@ end
 preprocess_traverse(node::Float64, _::Module)::Vector{ASTNode} =
     [Transpiler.transpiler_config.literals_as_f32 ? convert(Float32, node) : node]
 
-preprocess_traverse(node::ASTNode, _::Module)::Vector{ASTNode} = [node]
+preprocess_traverse(node, ::Module) = [node]
 
 precomp_union_types(ASTNode, preprocess_traverse, (missing, Module))

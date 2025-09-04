@@ -62,13 +62,14 @@ function glsl_cg_traverse(node::GLSLBlock, ctx::GLSLCodeGenContext)
 end
 
 function glsl_cg_traverse(node::GLSLDeclaration, ctx::GLSLCodeGenContext)
-    qualifier = qualifier_to_str(node.storage_qualifier)
+    qualifiers = qualifier_to_str.(sort_qualifiers(node.qualifiers))
 
-    if !isempty(qualifier)
-        qualifier *= " "
+    prefix = join(qualifiers, " ")
+    if !isempty(qualifiers)
+        prefix *= " "
     end
 
-    qualifier * type_to_str(node.type) * " " * glsl_cg_traverse(node.symbol, ctx)
+    prefix * type_to_str(node.type) * " " * glsl_cg_traverse(node.symbol, ctx)
 end
 
 glsl_cg_traverse(node::GLSLAssignment, ctx::GLSLCodeGenContext) = "$(glsl_cg_traverse(node.lhs, ctx)) = $(glsl_cg_traverse(node.rhs, ctx))"

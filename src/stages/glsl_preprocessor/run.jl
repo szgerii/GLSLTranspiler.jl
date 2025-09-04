@@ -4,51 +4,22 @@ function run_glsl_preprocessor(mod::Module, pipeline_ctx::GLSLPipelineContext, a
     fdecl = ast.args[1]
     @assert fdecl isa Expr && fdecl.head == :call
 
+    for param in fdecl.args
+        if param isa Expr && param.head == :decl
+            if any(qualifier -> qualifier isa Union{InQualifier,OutQualifier,UniformQualifier}, param.args[4])
+                push!(pipeline_ctx.env_syms, (param.args[1].value, param.args[2]))
+            end
+        end
+    end
+
     shader_ctx = GLSLShaderContext()
-
-    params = fdecl.args[2:end]
-    for (i, param) in enumerate(params)
-        if !(param isa Expr) || param.head != :glsl_var
-            continue
-        end
-
-        @assert length(param.args) == 3
-        @assert all(arg -> arg isa QuoteNode, param.args)
-
-        storage_qualifier = param.args[1].value
-        pname = param.args[2].value
-        ptype_sym = param.args[3].value
-
-        ptype = type_from_ast(ptype_sym, mod)
-        #@assert ptype <: ASTValueType "Invalid GLSL variable type: $ptype"
-
-        target = nothing
-        if storage_qualifier == :in
-            target = shader_ctx.in_vars
-        elseif storage_qualifier == :out
-            target = shader_ctx.out_vars
-        elseif storage_qualifier == :uniform
-            target = shader_ctx.uniform_vars
-        else
-            ast_error(param, "Invalid storage qualifier found in parameter list (valid options are :in, :out and :uniform)")
-        end
-
-        push!(target, (pname, ptype))
-
-        ast.args[1].args[i+1] = :($(pname)::$(ptype_sym))
-    end
-
-    pipeline_ctx.shader_ctx = shader_ctx
-    append!(pipeline_ctx.env_syms, shader_ctx.in_vars, shader_ctx.out_vars, shader_ctx.uniform_vars)
-
-    for env_sym in get_env_syms(pipeline_ctx)
-        pushfirst!(ast.args[2].args, :(local $env_sym))
-    end
 
     fbody = ast.args[2]
     @assert fbody isa Expr && fbody.head == :block
 
-    fbody = glsl_preprocess(fbody, mod)
+    ast.args[2] = glsl_preprocess(fbody, mod, pipeline_ctx)
+
+    pipeline_ctx.shader_ctx = shader_ctx
 
     ast
 end
