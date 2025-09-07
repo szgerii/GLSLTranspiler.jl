@@ -42,7 +42,7 @@ version = "1.11.0"
 
 [[deps.JuliaGLM]]
 deps = ["LinearAlgebra", "StaticArrays"]
-path = "C:\\Users\\szucs\\szakgyak\\JuliaGLM"
+path = "C:\\Users\\szucs\\.julia\\dev\\JuliaGLM"
 uuid = "d62f3426-b328-4065-b1cd-fa40c3c5e4f7"
 version = "0.0.0"
 

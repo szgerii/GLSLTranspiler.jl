@@ -3,17 +3,19 @@ import .TypeInference
 
 export @transpile, @glsl
 
-macro transpile(pipeline, f::Expr, verbose=false)
+@enum TranspilerLogLevel Silent Progress Verbose
+
+macro transpile(pipeline, f::Expr, log_level=Silent)
     f = macroexpand(__module__, f, recursive=true)
     def = gensym()
     output = gensym()
 
     quote
-        ($def, $output) = Transpiler.run_pipeline($(esc(pipeline)), $(QuoteNode(f)), $__module__; verbose=$(esc(verbose)))
+        ($def, $output) = Transpiler.run_pipeline($(esc(pipeline)), $(QuoteNode(f)), $__module__; log_level=$(esc(log_level)))
 
         $__module__.eval($def)
 
-        if ($verbose)
+        if ($(esc(log_level)) == $Progress)
             println("\nDefined Julia function:")
             println($def)
             println()
@@ -25,11 +27,11 @@ end
 
 function run_pipeline(
     pipeline::Pipeline, f::Expr, mod::Module, pipeline_ctx::Union{PipelineContext,Nothing}=nothing;
-    verbose::Bool=false
+    log_level::TranspilerLogLevel=Silent
 )::Tuple{Expr,Any,Vector{Tuple{Expr,Any}}}
     Base.remove_linenums!(f)
 
-    if verbose
+    if log_level == Verbose
         println("Running '$(pipeline.name)' pipeline...\n")
 
         println("Original function definition:")
@@ -50,12 +52,12 @@ function run_pipeline(
         first_expr = f.args[2].args[1]
         if first_expr isa Expr && first_expr.head == :function
             has_helpers = true
-            transpile_helpers!(pipeline_ctx, pipeline, f, mod; verbose=verbose)
+            transpile_helpers!(pipeline_ctx, pipeline, f, mod; log_level=log_level)
         end
     end
 
     # Don't print during precompilation
-    if ccall(:jl_generating_output, Cint, ()) != 1
+    if log_level != Silent && ccall(:jl_generating_output, Cint, ()) != 1
         target = get_in_helper(pipeline_ctx) ? "helper function" : "shader"
         println("Transpiling $target...")
     end
@@ -92,7 +94,7 @@ function run_pipeline(
         stage_fn = stage isa Stage ? stage.run : stage
         print_ctx = stage isa Stage && stage.print_ctx
 
-        verbose && println("Running '$stage_name' stage...")
+        log_level == Verbose && println("Running '$stage_name' stage...")
         stage_data = stage_fn(mod, pipeline_ctx, stage_data...)
 
         if !(stage_data isa Tuple)
@@ -132,7 +134,7 @@ function run_pipeline(
             add_helper_ret_type!(pipeline_ctx, name, sig, ret_type)
         end
 
-        verbose && println("\nFinished '$stage_name' stage, output:")
+        log_level == Verbose && println("\nFinished '$stage_name' stage, output:")
         for (i, output) in enumerate(stage_data)
             has_custom_formatter = stage isa Stage && length(stage.output_formatters) >= i
             formatter = has_custom_formatter ? stage.output_formatters[i] : identity
@@ -145,7 +147,7 @@ function run_pipeline(
             has_custom_name = stage isa Stage && length(stage.output_names) >= i && !isnothing(stage.output_names[i])
             name = has_custom_name ? stage.output_names[i] : "Output #$i"
 
-            if verbose
+            if log_level == Verbose
                 println("\n<$name>:")
                 if output isa AbstractTree
                     print_tree(formatted)
@@ -154,9 +156,9 @@ function run_pipeline(
                 end
             end
         end
-        verbose && println()
+        log_level == Verbose && println()
 
-        if verbose && print_ctx
+        if log_level == Verbose && print_ctx
             println("<Pipeline Context>:\n")
             for field_name in fieldnames(typeof(pipeline_ctx))
                 println("[$field_name]:")
@@ -171,12 +173,12 @@ function run_pipeline(
         def_transform!(def, pipeline_ctx)
     end
 
-    verbose && println("Finished pipeline '$(pipeline.name)'\n")
+    log_level == Verbose && println("Finished pipeline '$(pipeline.name)'\n")
 
     (def, stage_data[1], has_helpers ? get_helpers(pipeline_ctx) : Vector())
 end
 
-function transpile_helpers!(ctx::PipelineContext, pipeline::Pipeline, f::Expr, mod::Module; verbose::Bool=false)
+function transpile_helpers!(ctx::PipelineContext, pipeline::Pipeline, f::Expr, mod::Module; log_level::TranspilerLogLevel=Silent)
     @assert f.head == :function
 
     set_in_helper!(ctx, true)
@@ -201,13 +203,13 @@ function transpile_helpers!(ctx::PipelineContext, pipeline::Pipeline, f::Expr, m
             break
         end
 
-        verbose && println("Transpiling helper function $(arg.args[1].args[1])...")
+        log_level != Silent && println("Transpiling helper function $(arg.args[1].args[1])...")
 
         for pes in param_env_syms
             add_env_sym!(ctx, pes...)
         end
 
-        (def, output, helpers) = run_pipeline(pipeline, arg, mod, ctx; verbose=verbose)
+        (def, output, helpers) = run_pipeline(pipeline, arg, mod, ctx; log_level=log_level)
 
         @assert isempty(helpers) "Nested helper functions are not allowed"
 
@@ -218,7 +220,7 @@ function transpile_helpers!(ctx::PipelineContext, pipeline::Pipeline, f::Expr, m
         add_helper!(ctx, (def, output))
         helper_count += 1
 
-        verbose && println("Finished transpiling helper function $(arg.args[1])")
+        log_level == Verbose && println("Finished transpiling helper function $(arg.args[1])")
     end
 
     deleteat!(f.args[2].args, 1:helper_count)

@@ -36,7 +36,7 @@ struct ContinueTag <: ASTConstructTag end
             return expr.args[3] isa Expr && expr.args[3].head in [:elseif, :block]
         end
 
-        return false
+        false
     end),
     (SwizzleTag, node -> begin
         expr = node.original[]
@@ -45,7 +45,7 @@ struct ContinueTag <: ASTConstructTag end
             return false
         end
 
-        return node.children[2].type == ASTString
+        node.children[2].type == ASTString
     end),
     (IndexerTag, node -> begin
         expr = node.original[]
