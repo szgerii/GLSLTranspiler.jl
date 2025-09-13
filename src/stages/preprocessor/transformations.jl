@@ -51,7 +51,14 @@ function preprocess_transform(::Type{MultipleAssignmentPreTag}, node::Expr, _::M
     result = []
 
     for i in eachindex(lhs_exprs)
-        push!(result, Expr(:(=), lhs_exprs[i], rhs_exprs[i]))
+        lhs = lhs_exprs[i]
+        rhs = rhs_exprs[i]
+
+        if lhs in rhs_exprs
+            ast_error(node, "Multiple assignment LHS found in RHS. The transpiler aims to keep a close equivalence with the generated code format-wise, so syntax like \"a,b = b,a\" is not allowed. Independent assignments like \"a,b = 0,1\" is allowed and will simply be \'unrolled\'.")
+        end
+
+        push!(result, Expr(:(=), lhs, rhs))
     end
 
     result
@@ -92,9 +99,3 @@ function preprocess_transform(::Type{PrefixNegPreTag}, node::Expr, _::Module)::V
 end
 
 precomp_subtypes(PreTag, preprocess_transform, (missing, Expr, Module))
-
-#using InteractiveUtils
-
-#for T in subtypes(PreTag)
-#    precompile(preprocess_transform, (Type{T}, Expr, Module))
-#end
