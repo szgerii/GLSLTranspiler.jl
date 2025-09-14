@@ -2,6 +2,15 @@ using InteractiveUtils
 
 export precomp_subtypes, precomp_union_types
 
+"""
+    precomp_subtypes(supertype::Type, fn, signature::Tuple, as_type_param::Bool = true)
+
+Precompiles the function `fn` with type signature `signature`, replacing the [`missing`](@ref) elements inside `signature` with every concrete subtype of `supertype`.
+
+Handles Union unrolling and multiple levels of subtypes as well.
+
+`as_type_param` (`true` by default) controls whether the subtypes are treated in the signature as type parameters (`::Type{T}`), or as parameter types (`_::T`). 
+"""
 function precomp_subtypes(supertype::Type, fn, signature::Tuple, as_type_param::Bool=true)
     @assert isabstracttype(supertype)
 
@@ -22,6 +31,16 @@ function precomp_subtypes(supertype::Type, fn, signature::Tuple, as_type_param::
     end
 end
 
+"""
+    precomp_union_types(union_type::Type, fn, signature::Tuple, as_type_param::Bool = false)
+
+Precompiles the function `fn` with type signature `signature`, replacing the [`missing`](@ref) elements inside `signature` with every possible concrete type derived from `union_type`.
+
+Handles Union unrolling and multiple levels of subtypes as well.
+
+`as_type_param` (`false` by default) controls whether the concrete types are treated in the signature as type parameters (`::Type{T}`), or as parameter types (`_::T`). 
+
+"""
 function precomp_union_types(union_type::Type, fn, signature::Tuple, as_type_param::Bool=false)
     @assert union_type isa Union
 

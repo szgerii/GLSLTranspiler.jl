@@ -1,5 +1,12 @@
 export @exported
 
+"""
+    @exported def::Expr -> Expr
+
+Defines and exports the type described by `def`. `def` must be an abstract type definition or a struct definition. 
+
+The macro takes into account subtyping and parametric types.
+"""
 macro exported(def::Expr)
     @assert def.head in [:struct, :abstract] "The @exported macro can only be used on struct definitions and abstract types"
 

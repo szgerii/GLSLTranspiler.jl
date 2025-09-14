@@ -1,5 +1,14 @@
 export get_param_names, get_param, find_decl, replace_decls, resolve_module_chain, ast_error, try_type_from_ast, type_from_ast
 
+"""
+    ast_error(node::ASTNode, message...)
+
+Throw an [`ErrorException`](@ref) using the [`error`](@ref) function with a flat represenation of `node` appended to `messages`.
+
+# Arguments
+- `node::ASTNode`: the node to use for context information
+- `messages`: The messages passed to [`error`](@ref), with `node` ctx info appended 
+"""
 function ast_error(node::ASTNode, message...)
     str = ast_string(node)
 
@@ -30,6 +39,11 @@ ast_string(sym::Symbol) = ":$sym"
 ast_string(str::String) = "\"$str\""
 ast_string(node::ASTNode) = string(node)
 
+"""
+    get_param_names(f::Expr) -> Vector{Symbol}
+
+Return a vector of symbols consisting of the parameter names of the function definition expression `f`.
+"""
 function get_param_names(f::Expr)::Vector{Symbol}
     @assert f.head == :function
 
@@ -51,6 +65,16 @@ function get_param_names(f::Expr)::Vector{Symbol}
     params
 end
 
+"""
+    get_param(f::Expr, name::Symbol) -> Union{Expr,Symbol,Missing}
+
+Return the declaration node of parameter named `name` from function definition expression `f`.
+
+# Returns
+- `Expr`: The expression node, if the declaration is a complex decl (e.g. `function f(a::Int) end`). This also includes Transpiler-specific `Expr(:decl, ...)` nodes.
+- `Symbol`: The symbol node, if the declaration simply consists of the param's name (e.g. `function f(a) end`)
+- `Missing`: `missing`, if a parameter named `name` couldn't be found in `f`
+"""
 function get_param(f::Expr, name::Symbol)::Union{Expr,Symbol,Missing}
     @assert f.head == :function
 
@@ -77,6 +101,13 @@ function get_param(f::Expr, name::Symbol)::Union{Expr,Symbol,Missing}
     return missing
 end
 
+"""
+    resolve_module_chain(expr::Expr, mod::Module) -> Any
+
+Returns whatever the module chain expression `expr` points to, starting from module `mod`.
+
+Module chain expressions are [`Expr`](@ref)s like `ModA.ModB.my_func`.
+"""
 function resolve_module_chain(expr::Expr, mod::Module)
     @assert expr.head == :(.)
     @assert length(expr.args) == 2
@@ -96,6 +127,11 @@ function resolve_module_chain(expr::Expr, mod::Module)
     getfield(base_mod, expr.args[2].value)
 end
 
+"""
+    replace_decls(f::Expr) -> Expr
+
+Return a new function with all Transpiler-specific `Expr(:decl, ...)` declarations replaced with their valid Julia counterpart.
+"""
 function replace_decls(f::Expr)
     @assert f.head == :function
 
@@ -120,6 +156,19 @@ function replace_decls_traverse!(node::ASTNode)
     end
 end
 
+"""
+    try_type_from_ast(ex::Union{Expr,Symbol}, mod::Module) -> Union{DataType, Nothing}
+
+Try to return the [`DataType`](@ref) pointed to by `ex` in module `mod`. If it doesn't point to anything, or it points to a non-DataType object, [`nothing`](@ref) is returned.
+
+# Arguments
+- `ex::Union{Symbol,Expr}`: If `ex` is a [`Symbol`](@ref), it is simply resolved in `mod`. If it's an [`Expr`](@ref) of a module chain expression (see [`resolve_module_chain`](@ref)), that path is traversed starting from `mod` to find the result.
+- `mod::Module`: The base [`Module`](@ref) to start the look-up from.
+
+# Returns
+- `DataType`: The type if `ex` points to an object that is defined and `isa DataType`
+- `Nothing`: If `ex` doesn't point to a defined object starting from `mod`, or what it points to is not a `DataType`
+"""
 function try_type_from_ast(ex::Expr, mod::Module)::Union{DataType,Nothing}
     function structure_error()
         ast_error(ex, "Invalid expression structure for type resolution (target module: $mod)")
@@ -167,6 +216,11 @@ end
 try_type_from_ast(sym::Symbol, mod::Module)::Union{DataType,Nothing} =
     isdefined(mod, sym) ? getfield(mod, sym) : nothing
 
+"""
+    type_from_ast(node::Union{Expr,Symbol}, mod::Module) -> DataType
+
+Same as [`try_type_from_ast`](@ref), but throws an [`ast_error`](@ref) instead of returning [`nothing`](@ref).
+"""
 function type_from_ast(node::Union{Expr,Symbol}, mod::Module)::DataType
     result = try_type_from_ast(node, mod)
 

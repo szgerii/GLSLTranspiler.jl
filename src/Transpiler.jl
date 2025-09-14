@@ -1,10 +1,11 @@
 module Transpiler
 
 # Common Types
-include("core_types/includes.jl")
+include("core/types/includes.jl")
 
 using .CoreTypes
 
+# Utils
 include("utils/includes.jl")
 
 using .Utils
@@ -12,22 +13,25 @@ using .Utils
 include("TranspilerConfig.jl")
 
 # Preprocessor
-include("stages/preprocessor/includes.jl")
+include("core/stages/preprocessor/includes.jl")
 
 # Scope Discovery
-include("stages/scope_discovery/includes.jl")
+include("core/stages/scope_discovery/includes.jl")
 
 # Symbol Resolution
-include("stages/symbol_resolution/includes.jl")
+include("core/stages/symbol_resolution/includes.jl")
 
 # Type Inference
-include("stages/type_inference/includes.jl")
+include("core/stages/type_inference/includes.jl")
 
 # GLSL-specific stuff
-include("pipelines/glsl/includes.jl")
+include("glsl/includes.jl")
 
 # Public API for transpilation
-include("transpile.jl")
+include("pipeline_runner.jl")
+
+# Sample shader precompilation for speeding up TTFX
+# see the Known Issues section in README.md for possible improvement routes
 
 using JuliaGLM
 using PrecompileTools: @compile_workload
