@@ -35,7 +35,6 @@ true
 ```
 """
 macro transpile(pipeline, f::Expr, log_level=Silent)
-    f = macroexpand(__module__, f, recursive=true)
     def = gensym()
     output = gensym()
     helpers = gensym()
@@ -88,6 +87,8 @@ function run_pipeline(
     pipeline::Pipeline, f::Expr, mod::Module, pipeline_ctx::Union{PipelineContext,Nothing}=nothing;
     log_level::TranspilerLogLevel=Silent
 )::Tuple{Expr,Any,Vector{Tuple{Expr,Any}}}
+    f = macroexpand(mod, f; recursive=true)
+
     Base.remove_linenums!(f)
 
     if log_level == Verbose

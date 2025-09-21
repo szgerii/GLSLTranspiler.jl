@@ -58,6 +58,13 @@ function gen_typed_ast(node::ScopedASTNode, ::Type{SymbolTag}, ctx::TIContext)::
         end
     end
 
+    # exception for symbols referring to the JuliaGLM lib
+    # ideally, it would be imported in the calling scope and it would be caught above
+    # but there's no reason to fail here if it wasn't, as we have access to it from the transpiler
+    if node.original[] == :JuliaGLM
+        tast_type = ASTModule
+    end
+
     # if we found it in either, mark it as that type
     if !isnothing(tast_type)
         return TypedASTNode(node, tast_type)

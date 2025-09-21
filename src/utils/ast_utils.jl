@@ -114,9 +114,10 @@ function resolve_module_chain(expr::Expr, mod::Module)
     @assert expr.args[2] isa QuoteNode
 
     if expr.args[1] isa Symbol
-        @assert isdefined(mod, expr.args[1])
+        is_def = isdefined(mod, expr.args[1])
+        @assert is_def || expr.args[1] == :JuliaGLM
 
-        base_mod = getfield(mod, expr.args[1])
+        base_mod = is_def ? getfield(mod, expr.args[1]) : JuliaGLM
     else
         base_mod = resolve_module_chain(expr.args[1], mod)
     end

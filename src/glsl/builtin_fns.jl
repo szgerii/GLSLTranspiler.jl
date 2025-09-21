@@ -303,6 +303,7 @@ function define_builtin(fsym::Symbol, params_sig, ret_val)
     fn_def = :(TypeInference.builtin_fn_ret_type(::GLCtx, ::Val{$(QuoteNode(fsym))}, $(params_sig...)) = $ret_val)
 
     @eval $fn_def
+    # precompile(TypeInference.builtin_fn_ret_type, (GLCtx, Val{QuoteNode}, Tuple(params_sig)))
     fn_def
 end
 
@@ -312,6 +313,7 @@ function define_builtin(fsym::Symbol, params_sig, type_vars_sig, ret_val)
     fn_def = :(TypeInference.builtin_fn_ret_type(::GLCtx, ::Val{$(QuoteNode(fsym))}, $(params_sig...)) where {$(type_vars_sig...)} = $ret_val)
 
     @eval $fn_def
+    # precompile(TypeInference.builtin_fn_ret_type, (GLCtx, Val{QuoteNode}, Tuple(params_sig)))
     fn_def
 end
 
