@@ -48,10 +48,10 @@ end
 function glsl_transform!(state::GLSLTransformState, ::Type{AssignmentTag}, ctx::GTContext)
     transform_children!(state, ctx)
 
-    @assert length(state.children) == 2
+    @debug_assert length(state.children) == 2
 
     lhs = state.children[1].glsl_node
-    @assert lhs isa GLSLSymbol || lhs isa GLSLSwizzle
+    @debug_assert lhs isa GLSLSymbol || lhs isa GLSLSwizzle
 
     state.glsl_node = GLSLAssignment(lhs, state.children[2].glsl_node)
 end
@@ -80,12 +80,12 @@ function glsl_transform!(state::GLSLTransformState, ::Type{CallTag}, ctx::GTCont
         #insert!(state.children, 1, fstate)
     end
 
-    @assert !isempty(state.children)
-    @assert state.children[1].glsl_node isa GLSLSymbol
+    @debug_assert !isempty(state.children)
+    @debug_assert state.children[1].glsl_node isa GLSLSymbol
 
     is_broadcasted = state.children[1].glsl_node.sym == :broadcast
     first_arg_idx = is_broadcasted ? 3 : 2
-    @assert all(child -> child.typed_node.type <: ASTValueType, state.children[first_arg_idx:end])
+    @debug_assert all(child -> child.typed_node.type <: ASTValueType, state.children[first_arg_idx:end])
 
     fsym_idx = is_broadcasted ? 2 : 1
     fsym = state.children[fsym_idx].glsl_node.sym
@@ -103,12 +103,12 @@ end
 function glsl_transform!(state::GLSLTransformState, ::Type{ReturnTag}, ctx::GTContext)
     transform_children!(state, ctx)
 
-    @assert length(state.children) == 1
+    @debug_assert length(state.children) == 1
 
     ret_node = state.children[1]
     ret_type = ret_node.typed_node.type
 
-    @assert ret_type <: ASTValueType || ret_type == ASTVoid
+    @debug_assert ret_type <: ASTValueType || ret_type == ASTVoid
 
     state.glsl_node = ret_type <: ASTValueType ? GLSLReturn(ret_node) : GLSLReturn(nothing)
 end
@@ -137,22 +137,22 @@ function glsl_transform_if!(state::GLSLTransformState, ctx::GTContext)
     tnode = state.typed_node
     expr = tnode.original[]
 
-    @assert expr.head == :if || expr.head == :elseif
-    @assert 2 <= length(expr.args) <= 3
+    @debug_assert expr.head == :if || expr.head == :elseif
+    @debug_assert 2 <= length(expr.args) <= 3
 
     if tnode.children[1].type != ASTBool
         ast_error(expr, "If or elseif condition doesn't resolve to a bool value")
     end
 
-    @assert expr.args[2] isa Expr && expr.args[2].head == :block
-    @assert length(expr.args) != 3 || (expr.args[3] isa Expr && expr.args[3].head in [:block, :elseif])
+    @debug_assert expr.args[2] isa Expr && expr.args[2].head == :block
+    @debug_assert length(expr.args) != 3 || (expr.args[3] isa Expr && expr.args[3].head in [:block, :elseif])
 
     condition = GLSLTransformState(tnode.children[1])
     glsl_transform!(condition, ctx)
 
     body = GLSLTransformState(tnode.children[2])
     glsl_transform!(body, ctx)
-    @assert body.glsl_node isa GLSLBlock
+    @debug_assert body.glsl_node isa GLSLBlock
 
     if length(expr.args) < 3
         state.glsl_node = GLSLIf(condition.glsl_node, body.glsl_node)
@@ -168,7 +168,7 @@ function glsl_transform_if!(state::GLSLTransformState, ctx::GTContext)
     else
         # last_branch is an else branch
         glsl_transform!(last_branch, ctx)
-        @assert last_branch.glsl_node isa GLSLBlock
+        @debug_assert last_branch.glsl_node isa GLSLBlock
         state.glsl_node = GLSLIf(condition.glsl_node, body.glsl_node, Vector(), last_branch.glsl_node)
     end
 end
@@ -179,7 +179,7 @@ function flatten_if!(if_node::GLSLIf)
     while has_nested_elseif(if_node)
         nested_elseif = if_node.elseif_branches[end]
 
-        @assert length(nested_elseif.elseif_branches) == 1
+        @debug_assert length(nested_elseif.elseif_branches) == 1
         nested_branch = nested_elseif.elseif_branches[1]
 
         push!(if_node.elseif_branches, nested_branch)
@@ -188,7 +188,7 @@ function flatten_if!(if_node::GLSLIf)
 
     for elseif_branch in if_node.elseif_branches
         if elseif_branch.condition isa GLSLBlock
-            @assert length(elseif_branch.condition.body) == 1
+            @debug_assert length(elseif_branch.condition.body) == 1
             elseif_branch.condition = elseif_branch.condition.body[1]
         end
     end
@@ -206,9 +206,9 @@ end
 
 function assert_flattened_if(if_node::GLSLIf, in_elseif=false)
     if in_elseif
-        @assert isempty(if_node.elseif_branches)
-        @assert isnothing(if_node.else_branch)
-        @assert !(if_node.condition isa GLSLBlock)
+        @debug_assert isempty(if_node.elseif_branches)
+        @debug_assert isnothing(if_node.else_branch)
+        @debug_assert !(if_node.condition isa GLSLBlock)
     else
         for elseif_branch in if_node.elseif_branches
             assert_flattened_if(elseif_branch)
@@ -225,9 +225,9 @@ end
 function glsl_transform!(state::GLSLTransformState, ::Type{WhileTag}, ctx::GTContext)
     transform_children!(state, ctx)
 
-    @assert length(state.children) == 2
-    @assert state.children[1].typed_node.type == ASTBool
-    @assert state.children[2].glsl_node isa GLSLBlock
+    @debug_assert length(state.children) == 2
+    @debug_assert state.children[1].typed_node.type == ASTBool
+    @debug_assert state.children[2].glsl_node isa GLSLBlock
 
     state.glsl_node = GLSLWhile(state.children[1].glsl_node, state.children[2].glsl_node)
 end
@@ -235,7 +235,7 @@ end
 function glsl_transform!(state::GLSLTransformState, ::Type{ForTag}, ctx::GTContext)
     tnode = state.typed_node
 
-    @assert length(tnode.children) == 2
+    @debug_assert length(tnode.children) == 2
 
     it = tnode.children[1]
     body = tnode.children[2]
@@ -252,7 +252,7 @@ function glsl_transform!(state::GLSLTransformState, ::Type{SwizzleTag}, ctx::GTC
     # TODO: move swizzle validation here
 
     swizzle = state.typed_node.children[2].original[]
-    @assert swizzle isa String
+    @debug_assert swizzle isa String
 
     state.glsl_node = GLSLSwizzle(state.children[1].glsl_node, swizzle)
 end
@@ -315,7 +315,7 @@ function glsl_transform!(state::GLSLTransformState, ::Type{IndexerTag}, ctx::GTC
         state.glsl_node = result
     else
         idx = state.original[].args[2]
-        @assert 1 <= idx <= elcount(state.children[1].typed_node.type)
+        @debug_assert 1 <= idx <= elcount(state.children[1].typed_node.type)
 
         state.glsl_node = GLSLSwizzle(state.children[1].glsl_node, "xyzw"[idx] |> string)
     end
@@ -325,20 +325,20 @@ function glsl_transform!(state::GLSLTransformState, ::Type{LogicalOperatorTag}, 
     transform_children!(state, ctx)
 
     if state.original[].head == :(&&)
-        @assert length(state.children) == 2
-        @assert state.children[1].typed_node.type == ASTBool
-        @assert state.children[2].typed_node.type == ASTBool
+        @debug_assert length(state.children) == 2
+        @debug_assert state.children[1].typed_node.type == ASTBool
+        @debug_assert state.children[2].typed_node.type == ASTBool
 
         state.glsl_node = GLSLLogicalAnd(glsl_children(state)...)
     elseif state.original[].head == :(||)
-        @assert length(state.children) == 2
-        @assert state.children[1].typed_node.type == ASTBool
-        @assert state.children[2].typed_node.type == ASTBool
+        @debug_assert length(state.children) == 2
+        @debug_assert state.children[1].typed_node.type == ASTBool
+        @debug_assert state.children[2].typed_node.type == ASTBool
 
         state.glsl_node = GLSLLogicalOr(glsl_children(state)...)
     elseif state.original[].head == :call
         if state.children[1].original[] == :(!)
-            @assert length(state.children) == 2
+            @debug_assert length(state.children) == 2
 
             arg_type = state.children[2].typed_node.type
             if arg_type != ASTBool
@@ -347,7 +347,7 @@ function glsl_transform!(state::GLSLTransformState, ::Type{LogicalOperatorTag}, 
 
             state.glsl_node = GLSLLogicalNeg(state.children[2].glsl_node)
         elseif state.children[1].original[] == :(⊻)
-            @assert length(state.children) == 3
+            @debug_assert length(state.children) == 3
 
             lhs_type = state.children[2].typed_node.type
             rhs_type = state.children[3].typed_node.type

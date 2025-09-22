@@ -45,13 +45,13 @@ ast_string(node::ASTNode) = string(node)
 Return a vector of symbols consisting of the parameter names of the function definition expression `f`.
 """
 function get_param_names(f::Expr)::Vector{Symbol}
-    @assert f.head == :function
+    @debug_assert f.head == :function
 
     params = Vector{Symbol}()
     fdecl = f.args[1]
 
     for param_decl in fdecl.args[2:end]
-        @assert param_decl isa Symbol || (param_decl isa Expr && param_decl.head in [:(::), :decl])
+        @debug_assert param_decl isa Symbol || (param_decl isa Expr && param_decl.head in [:(::), :decl])
 
         if param_decl isa Symbol
             push!(params, param_decl)
@@ -76,7 +76,7 @@ Return the declaration node of parameter named `name` from function definition e
 - `Missing`: `missing`, if a parameter named `name` couldn't be found in `f`
 """
 function get_param(f::Expr, name::Symbol)::Union{Expr,Symbol,Missing}
-    @assert f.head == :function
+    @debug_assert f.head == :function
 
     fdecl = f.args[1]
 
@@ -91,7 +91,7 @@ function get_param(f::Expr, name::Symbol)::Union{Expr,Symbol,Missing}
             pname = param_decl.args[1].value
         end
 
-        @assert !ismissing(pname)
+        @debug_assert !ismissing(pname)
 
         if pname == name
             return param_decl
@@ -109,21 +109,21 @@ Returns whatever the module chain expression `expr` points to, starting from mod
 Module chain expressions are [`Expr`](@ref)s like `ModA.ModB.my_func`.
 """
 function resolve_module_chain(expr::Expr, mod::Module)
-    @assert expr.head == :(.)
-    @assert length(expr.args) == 2
-    @assert expr.args[2] isa QuoteNode
+    @debug_assert expr.head == :(.)
+    @debug_assert length(expr.args) == 2
+    @debug_assert expr.args[2] isa QuoteNode
 
     if expr.args[1] isa Symbol
         is_def = isdefined(mod, expr.args[1])
-        @assert is_def || expr.args[1] == :JuliaGLM
+        @debug_assert is_def || expr.args[1] == :JuliaGLM
 
         base_mod = is_def ? getfield(mod, expr.args[1]) : JuliaGLM
     else
         base_mod = resolve_module_chain(expr.args[1], mod)
     end
 
-    @assert base_mod isa Module
-    @assert isdefined(base_mod, expr.args[2].value)
+    @debug_assert base_mod isa Module
+    @debug_assert isdefined(base_mod, expr.args[2].value)
 
     getfield(base_mod, expr.args[2].value)
 end
@@ -134,7 +134,7 @@ end
 Return a new function with all Transpiler-specific `Expr(:decl, ...)` declarations replaced with their valid Julia counterpart.
 """
 function replace_decls(f::Expr)
-    @assert f.head == :function
+    @debug_assert f.head == :function
 
     replace_decls_traverse!(f)
 
@@ -196,7 +196,7 @@ function try_type_from_ast(ex::Expr, mod::Module)::Union{DataType,Nothing}
         iter = ex.args[1]
     end
 
-    @assert !isempty(length(location_chain)) && all(s -> s isa Symbol, location_chain)
+    @debug_assert !isempty(length(location_chain)) && all(s -> s isa Symbol, location_chain)
 
     iter = mod
     for loc in location_chain[1:end]

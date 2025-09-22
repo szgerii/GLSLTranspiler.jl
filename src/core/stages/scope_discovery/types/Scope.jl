@@ -6,7 +6,7 @@ const FUNCTION_SCOPE_ID::IDChain = [0x1, 0x1]
 
 id_chain_string(id_chain::IDChain) = join(id_chain, '.')
 function id_chain_string(id_chain::IDChain, selected_idx)
-    @assert 1 <= selected_idx <= length(id_chain) "Index pointed outside of the id chain's bounds"
+    @debug_assert 1 <= selected_idx <= length(id_chain) "Index pointed outside of the id chain's bounds"
 
     pre = id_chain_string(id_chain[1:selected_idx-1])
     post = id_chain_string(id_chain[selected_idx+1:end])
@@ -80,7 +80,7 @@ function get_scope(id_chain::IDChain, root::Ref{Scope})::Ref{Scope}
     start_idx = isnothing(root[].parent) ? 2 : 1
 
     for (i, id) in enumerate(id_chain[start_idx:end])
-        @assert 1 <= id <= length(iter[].children) "Invalid id in id_chain: $(id_chain_string(id_chain, i))"
+        @debug_assert 1 <= id <= length(iter[].children) "Invalid id in id_chain: $(id_chain_string(id_chain, i))"
 
         iter = iter[].children[id]
     end

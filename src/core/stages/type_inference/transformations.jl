@@ -6,7 +6,7 @@ Determine the type of `node` and fill its type information accordingly.
 infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTDefault}, _::TIContext) = node
 
 function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTAssignmentTag}, ctx::TIContext)
-    @assert length(node.children) == 2
+    @debug_assert length(node.children) == 2
 
     lhs = node.children[1]
     rhs = node.children[2]
@@ -20,7 +20,7 @@ function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTAssignmentTag}, ct
 
     if lhs.type == ASTVoidSym
         # a new symbol is being defined
-        @assert isnothing(find_type(lhs.original[], ctx))
+        @debug_assert isnothing(find_type(lhs.original[], ctx))
 
         add_type!(ctx, lhs.original[], rhs.type)
     elseif lhs.type != rhs.type
@@ -33,7 +33,7 @@ function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTAssignmentTag}, ct
 end
 
 function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTModuleResolveTag}, ctx::TIContext)
-    @assert node.children[1].type == ASTModule
+    @debug_assert node.children[1].type == ASTModule
 
     target = resolve_module_chain(node.original[], ctx.defining_module)
     src_type = ctx.defining_module.eval(:(typeof($target)))
@@ -46,7 +46,7 @@ function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTCallTag}, ctx::TIC
     fsym = node.children[1]
     args = node.children[2:end]
 
-    @assert fsym.original[] isa Symbol || (fsym.original[] isa Expr && fsym.original[].head == :(.))
+    @debug_assert fsym.original[] isa Symbol || (fsym.original[] isa Expr && fsym.original[].head == :(.))
 
     sym_ref = fsym.original[] isa Symbol
     is_helper = sym_ref && has_helper(ctx.pipeline_ctx, fsym.original[])
@@ -64,7 +64,7 @@ function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTCallTag}, ctx::TIC
         arg_types = map(arg -> arg.type, args)
         ret = builtin_fn_ret_type(ctx.pipeline_ctx, Val(fsym.original[]), arg_types...)
         if !ismissing(ret)
-            @assert ret <: ASTType "Invalid return type for environment function $(fsym.original[]) called with args $(arg_types)"
+            @debug_assert ret <: ASTType "Invalid return type for environment function $(fsym.original[]) called with args $(arg_types)"
 
             node.type = ret
 
@@ -75,7 +75,7 @@ function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTCallTag}, ctx::TIC
     first_arg_idx = 1
 
     if fsym.original[] == :broadcast
-        @assert args[1].type == ASTFunction
+        @debug_assert args[1].type == ASTFunction
         first_arg_idx = 2
     elseif fsym.type != ASTFunction
         ast_error(node.original[],
@@ -99,12 +99,12 @@ function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTCallTag}, ctx::TIC
 
     if is_helper
         tast_args_tuple = map(T -> to_tast(T), args_tuple)
-        @assert !any(isnothing, tast_args_tuple)
+        @debug_assert !any(isnothing, tast_args_tuple)
 
         rtype = get_helper_ret_type(ctx.pipeline_ctx, fsym.original[], tast_args_tuple)
 
         if !ismissing(rtype)
-            @assert rtype <: ASTType
+            @debug_assert rtype <: ASTType
 
             node.type = rtype
             return
@@ -136,7 +136,7 @@ function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTCallTag}, ctx::TIC
     elseif length(rtypes) == 1
         if rtypes[1] in [Union{}, Any]
             ct = Base.code_typed(f, args_tuple; optimize=false, debuginfo=:none)
-            @assert length(ct) == 1
+            @debug_assert length(ct) == 1
 
             rtypes[1] = ct[1].second
         end
@@ -178,7 +178,7 @@ function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTReturnTag}, ctx::T
 end
 
 function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTTernaryTag}, ctx::TIContext)
-    @assert length(node.original[].args) == 3
+    @debug_assert length(node.original[].args) == 3
 
     t1 = node.children[2].type
     t2 = node.children[3].type
@@ -273,7 +273,7 @@ function handle_vec_index!(node::TypedASTNode, _::TIContext)
 
         if new_len == 1
             node.type = to_tast(el_type)
-            @assert !isnothing(node.type) "Invalid element type $el_type in vector type $(vec_node.type)"
+            @debug_assert !isnothing(node.type) "Invalid element type $el_type in vector type $(vec_node.type)"
         elseif 2 <= new_len <= 4
             node.type = get_ast_vec_type(el_type, new_len)
         else
@@ -281,10 +281,10 @@ function handle_vec_index!(node::TypedASTNode, _::TIContext)
         end
     elseif idx isa Integer
         # regular indexing
-        @assert idx <= el_count "Index out of bounds: attempting to access component $idx of $(vec_node.type)"
+        @debug_assert idx <= el_count "Index out of bounds: attempting to access component $idx of $(vec_node.type)"
 
         node.type = to_tast(el_type)
-        @assert !isnothing(node.type) "Invalid element type $el_type for vector type $(vec_node.type)"
+        @debug_assert !isnothing(node.type) "Invalid element type $el_type for vector type $(vec_node.type)"
     else
         ast_error(node.original[],
             "Unsupported or invalid index type provided for vector indexing: $(node.children[2].type)")
@@ -298,7 +298,7 @@ function handle_mat_index!(node::TypedASTNode, _::TIContext)
     el_type = eltype(mat_node.type)
     (n, m) = size(to_ast(mat_node.type))
 
-    @assert 2 <= n <= 4 && 2 <= m <= 4
+    @debug_assert 2 <= n <= 4 && 2 <= m <= 4
 
     indices = node.children[2:end]
 
@@ -308,7 +308,7 @@ function handle_mat_index!(node::TypedASTNode, _::TIContext)
 
         if is_ast_integer(idx.type)
             node.type = to_tast(el_type)
-            @assert !isnothing(node.type)
+            @debug_assert !isnothing(node.type)
         end
     elseif length(indices) == 2
         # indexes specifying row and col
@@ -325,7 +325,7 @@ function handle_mat_index!(node::TypedASTNode, _::TIContext)
             node.type = get_ast_vec_type(el_type, n)
         elseif is_ast_integer(col_idx.type) && is_ast_integer(row_idx.type)
             node.type = to_tast(el_type)
-            @assert !isnothing(node.type)
+            @debug_assert !isnothing(node.type)
         end
     end
 

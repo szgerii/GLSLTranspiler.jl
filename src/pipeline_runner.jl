@@ -165,7 +165,7 @@ function run_pipeline(
             typed_ast = stage_data[1]
             typed_usyms = stage_data[3]
             name = typed_ast.children[1].children[1].original[]
-            @assert name isa Symbol
+            @debug_assert name isa Symbol
 
             sig = ()
             for param in typed_ast.children[1].children[2:end]
@@ -177,19 +177,19 @@ function run_pipeline(
                 elseif param_decl isa Expr && param_decl.head == :(::)
                     param_type = getfield(@__MODULE__, param_decl.args[2])
                     param_type = TypeInference.to_tast(param_type)
-                    @assert !isnothing(param_type)
+                    @debug_assert !isnothing(param_type)
                 else
                     error("Invalid parameter declaration found in helper function $name")
                 end
 
-                @assert !ismissing(param_type)
-                @assert param_type <: TypeInference.ASTType
+                @debug_assert !ismissing(param_type)
+                @debug_assert param_type <: TypeInference.ASTType
 
                 sig = (sig..., param_type)
             end
 
             ret_type = typed_ast.type
-            @assert ret_type <: TypeInference.ASTType
+            @debug_assert ret_type <: TypeInference.ASTType
 
             add_helper_ret_type!(pipeline_ctx, name, sig, ret_type)
         end
@@ -239,7 +239,7 @@ function run_pipeline(
 end
 
 function transpile_helpers!(ctx::PipelineContext, pipeline::Pipeline, f::Expr, mod::Module; log_level::TranspilerLogLevel=Silent)
-    @assert f.head == :function
+    @debug_assert f.head == :function
 
     set_in_helper!(ctx, true)
 
@@ -247,7 +247,7 @@ function transpile_helpers!(ctx::PipelineContext, pipeline::Pipeline, f::Expr, m
     for param in get_param_names(f)
         decl = get_param(f, param)
 
-        @assert !(decl isa Symbol)
+        @debug_assert !(decl isa Symbol)
         if decl.head == :decl
             push!(param_env_syms, (param, TypeInference.to_ast(decl.args[2])))
         elseif decl.head == :(::)
@@ -271,7 +271,7 @@ function transpile_helpers!(ctx::PipelineContext, pipeline::Pipeline, f::Expr, m
 
         (def, output, helpers) = run_pipeline(pipeline, arg, mod, ctx; log_level=log_level)
 
-        @assert isempty(helpers) "Nested helper functions are not allowed"
+        @debug_assert isempty(helpers) "Nested helper functions are not allowed"
 
         for pes in param_env_syms
             remove_env_sym!(ctx, pes[1])

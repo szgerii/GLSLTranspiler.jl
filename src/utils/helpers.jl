@@ -1,4 +1,4 @@
-export @exported
+export @exported, @debug_assert
 
 """
     @exported def::Expr -> Expr
@@ -41,3 +41,21 @@ macro exported(def::Expr)
         $(esc(def))
     end
 end
+
+"""
+    @debug_assert ex::Expr msg::Any=missing
+
+Inserts an assertion for `ex` if the `TRANSPILER_DEBUG` environment variable is set, with optional message argument `msg`.
+"""
+macro debug_assert(ex, msg=missing)
+    if haskey(ENV, "TRANSPILER_DEBUG")
+        if ismissing(msg)
+            return :(@assert $(esc(ex)) $(string(ex)))
+        else
+            return :(@assert $(esc(ex)) $(esc(msg)))
+        end
+    end
+
+    return :(nothing)
+end
+

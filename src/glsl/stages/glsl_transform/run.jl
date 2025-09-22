@@ -7,7 +7,7 @@ function run_glsl_transform(
 
     glsl_ast = transform_state.glsl_node
 
-    @assert glsl_ast isa GLSLBlock
+    @debug_assert glsl_ast isa GLSLBlock
 
     pushfirst!(glsl_ast.body, GLSLNewLine())
     pushfirst!(glsl_ast.body, GLSLComment("BODY", false))

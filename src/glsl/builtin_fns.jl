@@ -37,7 +37,7 @@ for n in 2:4
 end
 
 function specialize_union(::Type{T}, n::Int) where T
-    @assert T isa Union "Trying to specialize Union of gen types on a non-Union type"
+    @debug_assert T isa Union "Trying to specialize Union of gen types on a non-Union type"
 
     sub_types = Base.uniontypes(T)
 
@@ -298,7 +298,7 @@ TypeInference.builtin_fn_ret_type(::GLCtx, ::Val{:inverse}, ::Type{M}) where {M<
 # the resulting definitions could also be saved to a file to improve precompile time (maybe invalidate based on changes to the dictionary?)
 
 function define_builtin(fsym::Symbol, params_sig, ret_val)
-    @assert ret_val isa Symbol || isconcretetype(ret_val)
+    @debug_assert ret_val isa Symbol || isconcretetype(ret_val)
 
     fn_def = :(TypeInference.builtin_fn_ret_type(::GLCtx, ::Val{$(QuoteNode(fsym))}, $(params_sig...)) = $ret_val)
 
@@ -308,7 +308,7 @@ function define_builtin(fsym::Symbol, params_sig, ret_val)
 end
 
 function define_builtin(fsym::Symbol, params_sig, type_vars_sig, ret_val)
-    @assert ret_val isa Symbol || isconcretetype(ret_val)
+    @debug_assert ret_val isa Symbol || isconcretetype(ret_val)
 
     fn_def = :(TypeInference.builtin_fn_ret_type(::GLCtx, ::Val{$(QuoteNode(fsym))}, $(params_sig...)) where {$(type_vars_sig...)} = $ret_val)
 
@@ -325,7 +325,7 @@ for (fsym, sigs) in GLSL_BUILTIN_FNS
     end
 
     for sig in sigs
-        @assert sig isa Tuple && length(sig) > 0 "Invalid function signature for GLSL built-in function $fsym"
+        @debug_assert sig isa Tuple && length(sig) > 0 "Invalid function signature for GLSL built-in function $fsym"
 
         gen_type_params = []
         for param in sig
@@ -345,7 +345,7 @@ for (fsym, sigs) in GLSL_BUILTIN_FNS
                 param_type = param_type.parameters[1]
             end
 
-            @assert param_type <: ASTType "Type not supported by the type inference stage found in signature for built-in GLSL function '$fsym': $param_type"
+            @debug_assert param_type <: ASTType "Type not supported by the type inference stage found in signature for built-in GLSL function '$fsym': $param_type"
 
             if !(param_type isa Union) && !is_gen_type(param_type)
                 t_sig = is_ref ? :(::Type{<:Ref{$param_type}}) : :(::Type{$param_type})
@@ -374,7 +374,7 @@ for (fsym, sigs) in GLSL_BUILTIN_FNS
             for n in 1:4
                 type_vars_sig = []
                 for (type, type_var) in type_vars
-                    @assert type isa Union
+                    @debug_assert type isa Union
 
                     spec_type = specialize_union(type, n)
                     push!(type_vars_sig, :($type_var <: $spec_type))

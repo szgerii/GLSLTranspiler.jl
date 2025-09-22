@@ -1,8 +1,8 @@
 function run_glsl_preprocessor(mod::Module, pipeline_ctx::GLSLPipelineContext, ast::Expr)
-    @assert ast.head == :function
+    @debug_assert ast.head == :function
 
     fdecl = ast.args[1]
-    @assert fdecl isa Expr && fdecl.head == :call
+    @debug_assert fdecl isa Expr && fdecl.head == :call
 
     for param in fdecl.args
         if param isa Expr && param.head == :decl
@@ -13,7 +13,7 @@ function run_glsl_preprocessor(mod::Module, pipeline_ctx::GLSLPipelineContext, a
     end
 
     fbody = ast.args[2]
-    @assert fbody isa Expr && fbody.head == :block
+    @debug_assert fbody isa Expr && fbody.head == :block
 
     ast.args[2] = glsl_preprocess(fbody, mod, pipeline_ctx)
 

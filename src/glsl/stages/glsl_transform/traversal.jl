@@ -1,5 +1,5 @@
 function glsl_traverse(node::TypedASTNode, ctx::GTContext)::GLSLTransformState
-    @assert node.original[] isa Expr || node.original[] isa Symbol "Unsupported AST node type: $(typeof(node.original[]))"
+    @debug_assert node.original[] isa Expr || node.original[] isa Symbol "Unsupported AST node type: $(typeof(node.original[]))"
 
     state = GLSLTransformState(node)
 

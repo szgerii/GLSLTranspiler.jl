@@ -56,7 +56,7 @@ function collect_sym_usage_in_scope!(ctx::ScopeContext, node::ScopedASTNode, ::T
 
     expr = node.original[]
 
-    @assert expr isa Expr
+    @debug_assert expr isa Expr
 
     children_to_traverse = node.children
 
@@ -79,7 +79,7 @@ end
 function collect_sym_usage_in_scope!(ctx::ScopeContext, node::ScopedASTNode, ::Type{SymbolTag})
     sym = node.original[]
 
-    @assert sym isa Symbol
+    @debug_assert sym isa Symbol
 
     if isdefined(ctx.defining_module, sym) && ctx.defining_module.eval(:($sym isa DataType || $sym isa Function))
         return
@@ -95,7 +95,7 @@ function collect_assignment!(ctx::ScopeContext, node::ScopedASTNode)
         return
     end
 
-    @assert lhs isa Symbol "Unexpected non-Symbol, non-ref AST node encountered in lhs of an assignment"
+    @debug_assert lhs isa Symbol "Unexpected non-Symbol, non-ref AST node encountered in lhs of an assignment"
 
     rhs = node.children[2]
 
@@ -120,7 +120,7 @@ function collect_declaration!(ctx::ScopeContext, node::ScopedASTNode)
         ast_error(expr, "Encountered declaration with unexpected structure")
     end
 
-    @assert sym isa Symbol
+    @debug_assert sym isa Symbol
 
     add_usage!(ctx, sym, decl_type)
 end

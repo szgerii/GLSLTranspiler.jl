@@ -174,7 +174,7 @@ function decorate(mod::Module, qualifier::Qualifier, rest::Union{Expr,Symbol})
 
     if rest isa Symbol || (rest isa Expr && rest.head == :(::))
         name = rest isa Symbol ? rest : rest.args[1]
-        @assert name isa Symbol
+        @debug_assert name isa Symbol
 
         if rest isa Symbol
             type = missing
@@ -186,20 +186,20 @@ function decorate(mod::Module, qualifier::Qualifier, rest::Union{Expr,Symbol})
             end
 
             if type isa Symbol
-                @assert isdefined(mod, type)
+                @debug_assert isdefined(mod, type)
                 type = getfield(mod, type)
 
                 if !(type <: ASTType)
                     type = to_tast(type)
                 end
 
-                @assert type <: ASTType
+                @debug_assert type <: ASTType
             end
         end
 
         return Expr(:decl, QuoteNode(name), type, missing, Qualifier[qualifier])
     elseif rest isa Expr && rest.head == :decl
-        @assert rest.args[4] isa Vector
+        @debug_assert rest.args[4] isa Vector
 
         push!(rest.args[4], qualifier)
         return rest
@@ -231,7 +231,7 @@ function gen_qualifier_macros()
             continue
         end
 
-        @assert has_empty_ctor(type)
+        @debug_assert has_empty_ctor(type)
 
         macro_sym = split(string(nameof(type)), "Qualifier"; keepempty=false)[1] |> lowercase |> Symbol
         @eval @__MODULE__() macro $macro_sym(rest)

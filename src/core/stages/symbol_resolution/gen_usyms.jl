@@ -65,7 +65,7 @@ function gen_usyms!(ctx::SRContext, scope::Ref{Scope})
         if sym in ctx.skipped_syms
             usym = nothing
         elseif scope_source == SymGlobalDeclaration
-            @assert isdefined(ctx.defining_module, sym) "Symbol '$sym' with global declaration couldn't be found in the defining module (scope #$(id_chain_string(scope[].id_chain)))"
+            @debug_assert isdefined(ctx.defining_module, sym) "Symbol '$sym' with global declaration couldn't be found in the defining module (scope #$(id_chain_string(scope[].id_chain)))"
 
             usym = get(ctx.usyms, get_usym_id(sym, GLOBAL_SCOPE_ID), nothing)
 
@@ -99,7 +99,7 @@ function gen_usyms!(ctx::SRContext, scope::Ref{Scope})
             end
         end
 
-        @assert !ismissing(usym) "Failed to determine mapping for symbol '$sym' in scope #$(id_chain_string(scope[].id_chain))"
+        @debug_assert !ismissing(usym) "Failed to determine mapping for symbol '$sym' in scope #$(id_chain_string(scope[].id_chain))"
 
         if isnothing(usym) || usym.id in ctx.env_syms
             continue
@@ -126,7 +126,7 @@ function gen_usyms!(ctx::SRContext, scope::Ref{Scope})
 end
 
 function get_strongest_usage(usages::Vector{SymbolUsage})::SymbolUsage
-    @assert !isempty(usages)
+    @debug_assert !isempty(usages)
 
     strongest_usage = nothing
     max_strength = 0

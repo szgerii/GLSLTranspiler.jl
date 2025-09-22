@@ -19,7 +19,7 @@ SRContext(defining_module::Module, root_scope::Ref{Scope}) =
 function reg_env_usym!(ctx::SRContext, sym::Symbol)::UniqueSymbol
     usym = UniqueSymbol(sym, sym, FUNCTION_SCOPE_ID)
 
-    @assert !haskey(ctx.usyms, sym) "Trying to re-register environment symbol: $sym"
+    @debug_assert !haskey(ctx.usyms, sym) "Trying to re-register environment symbol: $sym"
 
     push!(ctx.env_syms, sym)
     ctx.usyms[sym] = usym
@@ -31,7 +31,7 @@ function reg_usym!(ctx::SRContext, sym::Symbol, scope_id::IDChain)::UniqueSymbol
     usym_id = get_usym_id(sym, scope_id)
     usym = UniqueSymbol(usym_id, sym, scope_id)
 
-    @assert !haskey(ctx.usyms, usym_id) "Trying to re-register a unique symbol that has already been registered (sym: $sym, scope id: $(id_chain_string(scope_id)))"
+    @debug_assert !haskey(ctx.usyms, usym_id) "Trying to re-register a unique symbol that has already been registered (sym: $sym, scope id: $(id_chain_string(scope_id)))"
 
     ctx.usyms[usym_id] = usym
 

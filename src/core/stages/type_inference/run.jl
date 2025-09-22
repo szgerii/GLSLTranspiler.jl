@@ -26,7 +26,7 @@ function run_type_inference(
             name_sym = param_decl.args[1]
             type_sym = param_decl.args[2]
 
-            @assert type_sym isa Symbol
+            @debug_assert type_sym isa Symbol
 
             src_type = getfield(mod, type_sym)
             type = to_tast(src_type)
@@ -38,11 +38,11 @@ function run_type_inference(
             name_sym = param_decl.args[1].value
             type = param_decl.args[2]
 
-            @assert type isa DataType && type <: ASTType
+            @debug_assert type isa DataType && type <: ASTType
         end
 
-        @assert name_sym isa Symbol
-        @assert type isa DataType
+        @debug_assert name_sym isa Symbol
+        @debug_assert type isa DataType
 
         target_usym_id = get_usym_id(name_sym, FUNCTION_SCOPE_ID)
         idx = find_usym_index(target_usym_id, ctx)
@@ -61,7 +61,7 @@ function run_type_inference(
 
     for env_sym in get_env_syms(pipeline_ctx)
         idx = findfirst(t_usym -> t_usym[1].id == env_sym, ctx.typed_usyms)
-        @assert !isnothing(idx) "Couldn't find environment symbol $env_sym in usym list"
+        @debug_assert !isnothing(idx) "Couldn't find environment symbol $env_sym in usym list"
 
         if isnothing(ctx.typed_usyms[idx][2])
             src_type = get_env_sym_type(env_sym, pipeline_ctx)
@@ -109,7 +109,7 @@ function run_type_inference(
 
     typed_usyms = []
     for (usym, type) in ctx.typed_usyms
-        @assert !isnothing(type) "Couldn't infer type for unique symbol '$(usym.id)'"
+        @debug_assert !isnothing(type) "Couldn't infer type for unique symbol '$(usym.id)'"
 
         push!(typed_usyms, TypedUniqueSymbol(usym, type))
     end

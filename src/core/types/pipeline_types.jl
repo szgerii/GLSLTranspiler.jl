@@ -61,7 +61,7 @@ abstract type PipelineContext end
 Initializes a starting instance of the given [`PipelineContext`](@ref) subtype
 """
 function init_pipeline_ctx(::Type{CtxT})::CtxT where {CtxT<:PipelineContext}
-    @assert(
+    @debug_assert(
         all(field_type -> missing isa field_type, fieldtypes(CtxT)),
         "Invalid PipelineContext subtype '$CtxT': all fields have to be able to contain the 'missing' value or an explicit init_pipeline_ctx method definition must exist for the context subtype"
     )
@@ -185,7 +185,7 @@ struct Pipeline
     function Pipeline(
         name::String, stages::Vector{<:Union{Stage,Function}}, ::Type{CtxT}
     ) where {CtxT<:PipelineContext}
-        @assert isconcretetype(CtxT) "Cannot define pipeline '$name' with non-concrete context type $CtxT"
+        @debug_assert isconcretetype(CtxT) "Cannot define pipeline '$name' with non-concrete context type $CtxT"
 
         new(name, stages, CtxT)
     end

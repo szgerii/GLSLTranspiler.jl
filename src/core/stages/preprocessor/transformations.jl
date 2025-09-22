@@ -4,8 +4,8 @@ preprocess_transform(::Type{DefaultPreTag}, node::Expr, _::Module)::Vector{ASTNo
 function preprocess_transform(::Type{UpdateAssignmentTag}, node::Expr, mod::Module)::Vector{ASTNode}
     name = string(node.head)
 
-    @assert length(name) > 1
-    @assert name[end] == '='
+    @debug_assert length(name) > 1
+    @debug_assert name[end] == '='
 
     sub_op = Symbol(name[1:end-1])
 
@@ -30,7 +30,7 @@ function preprocess_transform(::Type{ComparisonChainTag}, node::Expr, _::Module)
     ops = [node.args[i] for i in 2:2:n-1]
     comps = [Expr(:call, ops[i], args[i], args[i+1]) for i in eachindex(ops)]
 
-    @assert length(comps) > 1
+    @debug_assert length(comps) > 1
 
     chain = Expr(:(&&), comps[1])
     gen_iter = Ref(chain)
@@ -51,7 +51,7 @@ function preprocess_transform(::Type{MultipleAssignmentTag}, node::Expr, _::Modu
     lhs_exprs = node.args[1].args
     rhs_exprs = node.args[2].args
 
-    @assert length(lhs_exprs) == length(rhs_exprs)
+    @debug_assert length(lhs_exprs) == length(rhs_exprs)
 
     result = []
 
@@ -85,8 +85,8 @@ end
 
 # sin.(x)  =>  broadcast(sin, x)
 function preprocess_transform(::Type{BroadcastOperatorTag}, node::Expr, _::Module)::Vector{ASTNode}
-    @assert length(node.args) >= 2
-    @assert node.args[1] isa Symbol
+    @debug_assert length(node.args) >= 2
+    @debug_assert node.args[1] isa Symbol
 
     op_sym = string(node.args[1])[2:end] |> Symbol
     args = node.args[2:end]

@@ -21,7 +21,7 @@ function glsl_preprocess(node::Expr, mod::Module, ctx::PipelineContext, decl_typ
         end
     elseif node.head == Symbol("'")
         # rewrite mat' syntax to transpose(mat)
-        @assert length(node.args) == 1
+        @debug_assert length(node.args) == 1
 
         return :(transpose($(node.args[1])))
     elseif node.head == :decl

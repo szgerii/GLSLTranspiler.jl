@@ -12,7 +12,7 @@ Handles Union unrolling and multiple levels of subtypes as well.
 `as_type_param` (`true` by default) controls whether the subtypes are treated in the signature as type parameters (`::Type{T}`), or as parameter types (`_::T`). 
 """
 function precomp_subtypes(supertype::Type, fn, signature::Tuple, as_type_param::Bool=true)
-    @assert isabstracttype(supertype)
+    @debug_assert isabstracttype(supertype)
 
     for T in subtypes(supertype)
         if T isa Union
@@ -42,7 +42,7 @@ Handles Union unrolling and multiple levels of subtypes as well.
 
 """
 function precomp_union_types(union_type::Type, fn, signature::Tuple, as_type_param::Bool=false)
-    @assert union_type isa Union
+    @debug_assert union_type isa Union
 
     u_types = Base.uniontypes(union_type)
 

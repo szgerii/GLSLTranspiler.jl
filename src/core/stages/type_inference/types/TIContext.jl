@@ -28,7 +28,7 @@ find_type(usym::UniqueSymbol, ctx::TIContext) = find_type(usym, ctx)
 function add_type!(ctx::TIContext, usym_id::Symbol, ::Type{T}) where {T<:ValidUSymType}
     idx = find_usym_index(usym_id, ctx)
 
-    @assert isnothing(ctx.typed_usyms[idx][2])
+    @debug_assert isnothing(ctx.typed_usyms[idx][2])
 
     ctx.typed_usyms[idx] = (ctx.typed_usyms[idx][1], T)
 end

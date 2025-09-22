@@ -20,7 +20,7 @@ function sd_traverse(node::Expr, ctx::SDContext)::ScopedASTNode
     # lower the scope to the body of the expression
     if should_lower
         body = scoped_node.children[2].original[]
-        @assert body isa Expr && body.head == :block
+        @debug_assert body isa Expr && body.head == :block
 
         if node.head == :for
             loop_decl_scope = Scope(old_scope, LoopDeclScope)
@@ -48,7 +48,7 @@ function sd_traverse(node::Expr, ctx::SDContext)::ScopedASTNode
 
         ctx.current_scope = ctx.current_scope[].parent
     elseif opened_new_scope
-        @assert !isnothing(ctx.current_scope[].parent) "Found unexpected module-level scope during scope detection"
+        @debug_assert !isnothing(ctx.current_scope[].parent) "Found unexpected module-level scope during scope detection"
 
         ctx.current_scope = ctx.current_scope[].parent
     end
