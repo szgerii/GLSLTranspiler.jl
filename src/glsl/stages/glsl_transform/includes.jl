@@ -11,8 +11,6 @@ using ..GLSL
 import JuliaGLM
 using Tagger
 
-include("types/GLSLType.jl")
-include("types/GLSLASTNode.jl")
 include("types/GLSLTransformState.jl")
 include("types/GTContext.jl")
 

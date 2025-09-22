@@ -7,8 +7,7 @@ using ..TypeInference
 
 using JuliaGLM
 
-include("types/Qualifiers.jl")
-include("types/GLSLPipelineContext.jl")
+include("types/includes.jl")
 include("builtin_fns.jl")
 
 include("stages/glsl_preprocessor/includes.jl")

@@ -20,6 +20,7 @@ mutable struct GLSLPipelineContext <: PipelineContext
     helpers::Vector{Tuple{Expr,Any}}
     helper_sigs::Dict{Tuple{Symbol,Tuple},DataType}
     in_helper::Bool
+    interface_buffer::Vector{GLSLDeclaration}
 end
 
 function remove_env_sym_decls!(f::Expr, pipeline_ctx::GLSLPipelineContext)
@@ -46,7 +47,7 @@ const gl_vars = [
 # The rest of the context is just implementing the general PipelineContext "interface"
 
 CoreTypes.init_pipeline_ctx(::Type{GLSLPipelineContext}) =
-    GLSLPipelineContext(deepcopy(gl_vars), remove_env_sym_decls!, Vector(), Dict(), false)
+    GLSLPipelineContext(deepcopy(gl_vars), remove_env_sym_decls!, Vector(), Dict(), false, GLSLDeclaration[])
 
 CoreTypes.get_def_transform(ctx::GLSLPipelineContext) = ctx.def_transform
 

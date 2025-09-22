@@ -27,8 +27,9 @@ function reg_env_usym!(ctx::SRContext, sym::Symbol)::UniqueSymbol
     usym
 end
 
-function reg_usym!(ctx::SRContext, sym::Symbol, scope_id::IDChain)::UniqueSymbol
-    usym_id = get_usym_id(sym, scope_id)
+function reg_usym!(ctx::SRContext, sym::Symbol, scope_id::IDChain; skip_id_gen::Bool=false)::UniqueSymbol
+    usym_id = skip_id_gen ? sym : get_usym_id(sym, scope_id)
+
     usym = UniqueSymbol(usym_id, sym, scope_id)
 
     @debug_assert !haskey(ctx.usyms, usym_id) "Trying to re-register a unique symbol that has already been registered (sym: $sym, scope id: $(id_chain_string(scope_id)))"
@@ -38,8 +39,10 @@ function reg_usym!(ctx::SRContext, sym::Symbol, scope_id::IDChain)::UniqueSymbol
     usym
 end
 
-reg_usym!(ctx::SRContext, sym::Symbol, scope::Scope) = reg_usym!(ctx, sym, scope.id_chain)
-reg_usym!(ctx::SRContext, sym::Symbol, scope::Ref{Scope}) = reg_usym!(ctx, sym, scope[])
+reg_usym!(ctx::SRContext, sym::Symbol, scope::Scope; skip_id_gen::Bool=false) =
+    reg_usym!(ctx, sym, scope.id_chain; skip_id_gen=skip_id_gen)
+reg_usym!(ctx::SRContext, sym::Symbol, scope::Ref{Scope}; skip_id_gen::Bool=false) =
+    reg_usym!(ctx, sym, scope[]; skip_id_gen=skip_id_gen)
 
 function add_mapping!(ctx::SRContext, sym::Symbol, scope_id::IDChain, usym::UniqueSymbol)
     if !haskey(ctx.usym_mappings, scope_id)

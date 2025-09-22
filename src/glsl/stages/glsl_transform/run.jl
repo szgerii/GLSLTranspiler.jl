@@ -28,6 +28,7 @@ function run_glsl_transform(
         end
 
         sym_node = GLSLSymbol(usym.id)
+
         if is_param
             original_sym = split(string(usym.id), USYM_INFIX)[1] |> Symbol
             param_decl = get_param(typed_ast.original[], original_sym)
@@ -59,15 +60,29 @@ function run_glsl_transform(
         glsl_ast.body[end] = GLSLReturn(glsl_ast.body[end])
     end
 
-    if in_helper
+    local output
+    if !in_helper
+        output = GLSLShader(param_decls, glsl_ast)
+
+        for decl in pipeline_ctx.interface_buffer
+            pushfirst!(output.interface_declarations, decl)
+        end
+    else
         sort!(param_decls; by=decl -> begin
             idx = findfirst(param_sym -> param_sym == strip_usym_id(decl.symbol.sym), params)
         end)
+
+        output = GLSLFunction(fn_name, param_decls, to_glsl_type(typed_ast.type), GLSLBlock(glsl_ast.body))
     end
 
-    output = in_helper ?
-             GLSLFunction(fn_name, param_decls, to_glsl_type(typed_ast.type), GLSLBlock(glsl_ast.body)) :
-             GLSLShader(param_decls, glsl_ast)
+    for usym in usyms
+        if usym.def_scope_id == GLOBAL_SCOPE_ID
+            pushfirst!(
+                !in_helper ? output.interface_declarations : pipeline_ctx.interface_buffer,
+                GLSLDeclaration(GLSLSymbol(usym.id), to_glsl_type(usym.type), Qualifier[UniformQualifier()])
+            )
+        end
+    end
 
     (output)
 end

@@ -109,6 +109,17 @@ function run_type_inference(
 
     typed_usyms = []
     for (usym, type) in ctx.typed_usyms
+        if isnothing(type) && isnothing(findfirst(USYM_INFIX, string(usym.id))) && isdefined(mod, usym.id)
+            src_type = mod.eval(:(typeof($(usym.id))))
+
+            if !(src_type isa DataType) || (tast_type = to_tast(src_type)) === nothing
+                error("Variable '$(usym.id)' captured from the global scope has illegal type $src_type.")
+            end
+
+            add_type!(ctx, usym, tast_type)
+            type = tast_type
+        end
+
         @debug_assert !isnothing(type) "Couldn't infer type for unique symbol '$(usym.id)'"
 
         push!(typed_usyms, TypedUniqueSymbol(usym, type))
