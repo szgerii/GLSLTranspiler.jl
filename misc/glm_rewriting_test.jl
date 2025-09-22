@@ -13,7 +13,7 @@ shader_fn = :(
 logging = Transpiler.Silent
 
 (def, code) = Transpiler.run_pipeline(
-    Transpiler.GLSL.glsl_pipeline,
+    Transpiler.GLSL.GLSLPipeline,
     shader_fn,
     @__MODULE__();
     log_level=logging
@@ -28,7 +28,7 @@ println(code)
 import JuliaGLM
 
 (def, code) = Transpiler.run_pipeline(
-    Transpiler.GLSL.glsl_pipeline,
+    Transpiler.GLSL.GLSLPipeline,
     shader_fn,
     @__MODULE__();
     log_level=logging

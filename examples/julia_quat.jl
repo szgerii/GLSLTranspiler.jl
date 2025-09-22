@@ -5,8 +5,7 @@ using JuliaGLM
 using Transpiler
 using Transpiler.GLSL
 
-code = @transpile(
-    Transpiler.GLSL.glsl_pipeline,
+code = @glsl(
     function julia_quaternion_1(
         @out(frag_col::Vec4),
         @uniform(time::Float32),

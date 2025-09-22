@@ -1,6 +1,4 @@
-#! format: off
-public glsl_pipeline
-#! format: on
+export GLSLPipeline, @glsl
 
 """
 The pipeline the can be ran using [`Transpiler.run_pipeline`](@ref) for Julia -> GLSL transpilation.
@@ -15,7 +13,7 @@ It's made up of the following stages:
 1. IR Transformation (GLSL)
 1. Code Generation (GLSL)
 """
-const glsl_pipeline = Pipeline("Julia -> GLSL",
+const GLSLPipeline = Pipeline("Julia -> GLSL",
     Vector([
         Transpiler.GLSL.GLSLPreprocessor.GLSLPreprocessorStage,
         Transpiler.Preprocessor.PreprocessorStage,
@@ -27,3 +25,24 @@ const glsl_pipeline = Pipeline("Julia -> GLSL",
     ]),
     Transpiler.GLSL.GLSLPipelineContext
 )
+
+"""
+Shorthand for calling [`@transpile`](@ref) with [`GLSLPipeline`](@ref) as the target pipeline.
+"""
+macro glsl(f::Expr, log_level=Transpiler.Silent)
+    def = gensym()
+    output = gensym()
+    helpers = gensym()
+
+    quote
+        ($def, $output, $helpers) = Transpiler.run_pipeline($GLSLPipeline, $(QuoteNode(f)), $__module__; log_level=$(esc(log_level)))
+
+        $__module__.eval($def)
+
+        for helper in $helpers
+            $__module__.eval(helper[1])
+        end
+
+        $output
+    end
+end

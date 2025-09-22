@@ -22,11 +22,11 @@ input_def = :(
 #   - the pipeline to run
 #   - the fn def to run it on
 #   - the module to use as a "Julia context"
-(gen_def, gen_code, gen_helpers) = run_pipeline(Transpiler.GLSL.glsl_pipeline, input_def, Main)
+(gen_def, gen_code, gen_helpers) = run_pipeline(Transpiler.GLSL.GLSLPipeline, input_def, Main)
 
 # or:
 code = @transpile(
-    Transpiler.GLSL.glsl_pipeline,
+    Transpiler.GLSL.GLSLPipeline,
     :(
         function my_julia_shader(#= ... =#)
             # ...
@@ -98,7 +98,7 @@ Finally, the code generation stage is where the actual shader code gets construc
 
 The main module is defined in *src/Transpiler.jl*, but this generally only imports generic *includes.jl* files from the submodule directories. Those are in turn responsible for defining the structure/inclusion order of their respective submodules.
 
-The *src/pipeline_runner.jl* file contains the functions and convenience macros for generic transpilation. More specific macros may be defined, like the ```@glsl``` macro coming from *src/glsl/glsl_pipeline.jl*.
+The *src/pipeline_runner.jl* file contains the functions and convenience macros for generic transpilation. More specific macros may be defined, like the ```@glsl``` macro coming from *src/glsl/GLSLPipeline.jl*.
 
 ### Stages
 
@@ -116,7 +116,7 @@ This separated traversal/transformation logic keeps the code for transforming no
 
 Stages for the core pipeline can be found in the *src/core/stages* directory, while stages for the GLSL pipeline can be found in *src/glsl/stages*.
 
-The GLSL pipeline itself is defined in *src/glsl/glsl_pipeline.jl*. It may be useful to export this from Transpiler.GLSL, but I wanted to keep namespace pollution to a minimum for now.
+The GLSL pipeline itself is defined in *src/glsl/GLSLPipeline.jl*. It may be useful to export this from Transpiler.GLSL, but I wanted to keep namespace pollution to a minimum for now.
 
 ### Utils
 

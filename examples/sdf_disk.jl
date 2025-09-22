@@ -5,8 +5,7 @@ using Transpiler
 using Transpiler.GLSL
 using JuliaGLM
 
-code = @transpile(
-    Transpiler.GLSL.glsl_pipeline,
+code = @glsl(
     function sdf_disk(
         @out(frag_col::Vec4),
         @uniform(mouse::Vec4),

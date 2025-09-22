@@ -14,7 +14,7 @@ using JuliaGLM
 some_global = 2
 some_other_global = 3
 
-@skip @transpile Transpiler.GLSL.glsl_pipeline function test_fn(a::Int, b::Int)
+@skip @transpile Transpiler.GLSL.GLSLPipeline function test_fn(a::Int, b::Int)
     # global 1
     some_global = 2
     # local 1.1 because of assignment
@@ -70,7 +70,7 @@ i = 0
 j = 1
 
 @skip @transpile(
-    Transpiler.GLSL.glsl_pipeline,
+    Transpiler.GLSL.GLSLPipeline,
     function preprocessor()
         global i, j
         i += 2
@@ -83,7 +83,7 @@ j = 1
 )
 
 @skip @transpile(
-    Transpiler.GLSL.glsl_pipeline,
+    Transpiler.GLSL.GLSLPipeline,
     function scope()
         i = 1
 
@@ -114,7 +114,7 @@ j = 1
 )
 
 @skip @transpile(
-    Transpiler.GLSL.glsl_pipeline,
+    Transpiler.GLSL.GLSLPipeline,
     function symbols()
         i = 1
         j = 3
@@ -129,7 +129,7 @@ j = 1
 )
 
 @skip @transpile(
-    Transpiler.GLSL.glsl_pipeline,
+    Transpiler.GLSL.GLSLPipeline,
     function glsl_preprocessor(
         @in(normal::Vec3),
         @out(frag_col::Vec4),
@@ -141,7 +141,7 @@ j = 1
 )
 
 @skip @transpile(
-    Transpiler.GLSL.glsl_pipeline,
+    Transpiler.GLSL.GLSLPipeline,
     function green(@out(out_col::Vec4))
         out_col = Vec4(0, 1, 0, 1)
     end
@@ -149,7 +149,7 @@ j = 1
 
 
 @skip @transpile(
-    Transpiler.GLSL.glsl_pipeline,
+    Transpiler.GLSL.GLSLPipeline,
     function mouse_follow(
         @out(color::Vec4),
         @uniform(time::Float32),
@@ -177,7 +177,7 @@ j = 1
 #Transpiler.transpiler_config.literals_as_f32 = false
 
 @skip code = @transpile(
-    Transpiler.GLSL.glsl_pipeline,
+    Transpiler.GLSL.GLSLPipeline,
     function test_shader(@in(a::Float32), @out(col::Vec4))
         i = 1
         m2 = mat2(1)
@@ -192,7 +192,7 @@ j = 1
 
 
 @skip code = @transpile(
-    Transpiler.GLSL.glsl_pipeline,
+    Transpiler.GLSL.GLSLPipeline,
     function fn_test(@out(frag_col::Vec4))
         function helper(a::Int)
             a
@@ -209,7 +209,7 @@ j = 1
 )
 
 @skip code = @transpile(
-    Transpiler.GLSL.glsl_pipeline,
+    Transpiler.GLSL.GLSLPipeline,
     function range_test()
         a = 3
 
@@ -248,7 +248,7 @@ some_global = 1
 some_other_global = 1
 
 code = @transpile(
-    Transpiler.GLSL.glsl_pipeline, function type_example()
+    Transpiler.GLSL.GLSLPipeline, function type_example()
         x = 1.0
         y = 2.0
 

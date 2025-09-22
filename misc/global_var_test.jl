@@ -8,7 +8,7 @@ x = 2
 z = 1
 
 (_, code) = Transpiler.run_pipeline(
-    Transpiler.GLSL.glsl_pipeline,
+    Transpiler.GLSL.GLSLPipeline,
     :(
         function test()
             function helper()

@@ -5,8 +5,7 @@ using Transpiler
 using Transpiler.GLSL
 using JuliaGLM
 
-code = @transpile(
-    Transpiler.GLSL.glsl_pipeline,
+code = @glsl(
     function matrices(@out(frag_col::Vec4))
         m2 = mat2(1, 2, 3, 4)
         m3 = mat3(1, 2, 3, 4, 5, 6, 7, 8, 9)

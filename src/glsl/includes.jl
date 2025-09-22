@@ -14,6 +14,6 @@ include("stages/glsl_preprocessor/includes.jl")
 include("stages/glsl_transform/includes.jl")
 include("stages/glsl_code_gen/includes.jl")
 
-include("glsl_pipeline.jl")
+include("GLSLPipeline.jl")
 
 end

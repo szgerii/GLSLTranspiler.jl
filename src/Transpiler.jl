@@ -44,7 +44,7 @@ using .GLSL
 # TODO profile for weak spots
 # Precompile
 @compile_workload begin
-    @transpile GLSL.glsl_pipeline function shadertoy_demo(
+    @transpile GLSL.GLSLPipeline function shadertoy_demo(
         GLSL.@out(a::Vec4),
         @in(b::Float32),
         @uniform(c::IVec2)

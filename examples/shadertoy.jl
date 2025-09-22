@@ -5,8 +5,7 @@ using Transpiler
 using Transpiler.GLSL
 using JuliaGLM
 
-code = @transpile(
-    Transpiler.GLSL.glsl_pipeline,
+code = @glsl(
     function shadertoy_demo(
         @out(frag_color::Vec4),
         @uniform(time::Float32),

@@ -5,8 +5,7 @@ using Transpiler
 using Transpiler.GLSL
 using JuliaGLM
 
-code = @transpile(
-    Transpiler.GLSL.glsl_pipeline,
+code = @glsl(
     function rounded_box(
         @out(frag_col::Vec4),
         @uniform(resolution::IVec2),

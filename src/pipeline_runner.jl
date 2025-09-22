@@ -24,7 +24,7 @@ In the end, it will return the generated code String.
 # Examples
 ```jldoctest
 julia> code = @transpile(
-           Transpiler.GLSL.glsl_pipeline,
+           Transpiler.GLSL.GLSLPipeline,
            function my_shader_fn(#= ... =#)
                #= ... =#
            end
@@ -46,12 +46,6 @@ macro transpile(pipeline, f::Expr, log_level=Silent)
 
         for helper in $helpers
             $__module__.eval(helper[1])
-        end
-
-        if ($(esc(log_level)) == $Progress)
-            println("\nDefined Julia function:")
-            println($def)
-            println()
         end
 
         $output
