@@ -5,6 +5,16 @@ gen_typed_ast(node::ScopedASTNode, ::Type{T}, ctx::TIContext) where {T<:ScopedAS
     ast_error(node.original[], "Unsupported AST node encountered: $T")
 
 function gen_typed_ast(node::ScopedASTNode, ::Type{ExprTag}, ctx::TIContext)::TypedASTNode
+    if node.original[].head == :decl && !(node.original[].args[2] <: ASTType)
+        tast_type = to_tast(node.original[].args[2])
+
+        if isnothing(tast_type)
+            ast_error(node.original[], "Invalid declaration type: $(node.original[].args[2])")
+        end
+
+        node.original[].args[2] = tast_type
+    end
+
     tag = tag_match(TASTNodeTag, node.original[])
 
     if tag == TASTUnsupportedTag

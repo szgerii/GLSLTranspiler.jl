@@ -44,9 +44,9 @@ macro transpile(pipeline, f::Expr, log_level=Silent)
 
         $__module__.eval($def)
 
-        #for helper in $helpers
-        #    $__module__.eval(helper[1])
-        #end
+        for helper in $helpers
+            $__module__.eval(helper[1])
+        end
 
         if ($(esc(log_level)) == $Progress)
             println("\nDefined Julia function:")
@@ -248,9 +248,7 @@ function transpile_helpers!(ctx::PipelineContext, pipeline::Pipeline, f::Expr, m
         decl = get_param(f, param)
 
         @debug_assert !(decl isa Symbol)
-        if decl.head == :decl
-            push!(param_env_syms, (param, TypeInference.to_ast(decl.args[2])))
-        elseif decl.head == :(::)
+        if decl.head in [:decl, :(::)]
             push!(param_env_syms, (param, decl.args[2]))
         else
             ast_error(decl, "Invalid function parameter declaration")

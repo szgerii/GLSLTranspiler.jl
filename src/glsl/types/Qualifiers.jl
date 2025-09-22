@@ -188,12 +188,6 @@ function decorate(mod::Module, qualifier::Qualifier, rest::Union{Expr,Symbol})
             if type isa Symbol
                 @debug_assert isdefined(mod, type)
                 type = getfield(mod, type)
-
-                if !(type <: ASTType)
-                    type = to_tast(type)
-                end
-
-                @debug_assert type <: ASTType
             end
         end
 

@@ -30,7 +30,7 @@ code = @transpile(
             dot(z, z)
         end
 
-        function map(p::Vec3, c::Vec4)
+        function map_(p::Vec3, c::Vec4)
             z = vec4(p, 0.2)
 
             m2 = 0.0
@@ -74,7 +74,7 @@ code = @transpile(
                 end
 
                 t += h
-                res = map(ro + rd * t, c)
+                res = map_(ro + rd * t, c)
                 h = res[:x]
                 d = res[:y]
                 m = res[:z]
@@ -93,9 +93,9 @@ code = @transpile(
             eps = vec3(e, 0.0, 0.0)
 
             normalize(vec3(
-                map(pos + eps[:xyy], c)[:x] - map(pos - eps[:xyy], c)[:x],
-                map(pos + eps[:yxy], c)[:x] - map(pos - eps[:yxy], c)[:x],
-                map(pos + eps[:yyx], c)[:x] - map(pos - eps[:yyx], c)[:x],
+                map_(pos + eps[:xyy], c)[:x] - map_(pos - eps[:xyy], c)[:x],
+                map_(pos + eps[:yxy], c)[:x] - map_(pos - eps[:yxy], c)[:x],
+                map_(pos + eps[:yyx], c)[:x] - map_(pos - eps[:yyx], c)[:x],
             ))
         end
 

@@ -38,6 +38,10 @@ function run_type_inference(
             name_sym = param_decl.args[1].value
             type = param_decl.args[2]
 
+            if !(type <: ASTType)
+                type = to_tast(type)
+            end
+
             @debug_assert type isa DataType && type <: ASTType
         end
 

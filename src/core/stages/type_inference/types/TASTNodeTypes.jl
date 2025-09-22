@@ -121,10 +121,9 @@ macro define_tast_bijection(ast_type, tast_type)
     end
 end
 
-to_ast(::Type{T}) where {T<:ASTValueType} = nothing
+to_ast(::Type{T}) where T = nothing
 
-to_tast(::Type{T}) where T = error("Found value of unsupported type: ", T)
-to_tast(::Type{T}) where {T<:ASTLiteral} = nothing
+to_tast(::Type{T}) where T = nothing
 to_tast(::Type{<:Function}) = ASTFunction
 
 # for type constructors like Int64(...)
