@@ -39,15 +39,127 @@ function remove_env_sym_decls!(f::Expr, pipeline_ctx::GLSLPipelineContext)
     end
 end
 
-const gl_vars = [
+# based on https://www.khronos.org/opengl/wiki/Built-in_Variable_(GLSL)
+# TODO array vars (waiting for array support)
+const GLVars = [
+    # vertex shaders
+    (:gl_VertexID, Int32),
+    (:gl_InstanceID, Int32),
+    (:gl_DrawID, Int32),
+    (:gl_BaseVertex, Int32),
+    (:gl_BaseInstance, Int32),
     (:gl_Position, Vec4),
-    (:gl_FragCoord, Vec4)
+    (:gl_PointSize, Float32),
+    # (:gl_ClipDistance, Vector{Float32}),
+
+    # tessellation control shaders
+    (:gl_PatchVerticesIn, Int32),
+    (:gl_PrimitiveID, Int32),
+    (:gl_InvocationID, Int32),
+    # (:gl_TessLevelOuter, Vector{Float32}),
+    # (:gl_TessLevelInner, Vector{Float32}),
+    (:gl_TessCoord, Vec3),
+
+    # geometry shaders
+    (:gl_Layer, Int32),
+    (:gl_ViewportIndex, Int32),
+
+    # fragment shaders
+    (:gl_FragCoord, Vec4),
+    (:gl_FrontFacing, Bool),
+    (:gl_PointCoord, Vec2),
+    (:gl_SampleID, Int32),
+    (:gl_SamplePosition, Vec2),
+    #(:gl_SampleMaskIn, Vector{Int32}),
+    (:gl_FragDepth, Float32),
+    #(:gl_SampleMask, Vector{Int32}),
+
+    # compute shaders
+    (:gl_NumWorkGroups, UVec3),
+    (:gl_WorkGroupID, UVec3),
+    (:gl_LocalInvocationID, UVec3),
+    (:gl_GlobalInvocationID, UVec3),
+    (:gl_LocalInvocationIndex, UInt32),
+    (:gl_WorkGroupSize, UVec3),
+
+    # uniforms
+    # (:gl_DepthRange, )
+    (:gl_NumSamples, Int32),
+
+    # constants
+    (:gl_MaxVertexAttribs, Int32),
+    (:gl_MaxVertexOutputComponents, Int32),
+    (:gl_MaxVertexUniformComponents, Int32),
+    (:gl_MaxVertexTextureImageUnits, Int32),
+    (:gl_MaxGeometryInputComponents, Int32),
+    (:gl_MaxGeometryOutputComponents, Int32),
+    (:gl_MaxGeometryUniformComponents, Int32),
+    (:gl_MaxGeometryTextureImageUnits, Int32),
+    (:gl_MaxGeometryOutputVertices, Int32),
+    (:gl_MaxGeometryTotalOutputComponents, Int32),
+    (:gl_MaxGeometryVaryingComponents, Int32),
+    (:gl_MaxFragmentInputComponents, Int32),
+    (:gl_MaxDrawBuffers, Int32),
+    (:gl_MaxFragmentUniformComponents, Int32),
+    (:gl_MaxTextureImageUnits1, Int32),
+    (:gl_MaxClipDistances, Int32),
+    (:gl_MaxCombinedTextureImageUnits, Int32),
+    (:gl_MaxTessControlInputComponents, Int32),
+    (:gl_MaxTessControlOutputComponents, Int32),
+    (:gl_MaxTessControlUniformComponents, Int32),
+    (:gl_MaxTessControlTextureImageUnits, Int32),
+    (:gl_MaxTessControlTotalOutputComponents, Int32),
+    (:gl_MaxTessEvaluationInputComponents, Int32),
+    (:gl_MaxTessEvaluationOutputComponents, Int32),
+    (:gl_MaxTessEvaluationUniformComponents, Int32),
+    (:gl_MaxTessEvaluationTextureImageUnits, Int32),
+    (:gl_MaxTessPatchComponents, Int32),
+    (:gl_MaxPatchVertices, Int32),
+    (:gl_MaxTessGenLevel, Int32),
+    (:gl_MaxViewports, Int32),
+    (:gl_MaxVertexUniformVectors, Int32),
+    (:gl_MaxFragmentUniformVectors, Int32),
+    (:gl_MaxVaryingVectors, Int32),
+    (:gl_MaxVertexImageUniforms, Int32),
+    (:gl_MaxVertexAtomicCounters, Int32),
+    (:gl_MaxVertexAtomicCounterBuffers, Int32),
+    (:gl_MaxTessControlImageUniforms, Int32),
+    (:gl_MaxTessControlAtomicCounters, Int32),
+    (:gl_MaxTessControlAtomicCounterBuffers, Int32),
+    (:gl_MaxTessEvaluationImageUniforms, Int32),
+    (:gl_MaxTessEvaluationAtomicCounters, Int32),
+    (:gl_MaxTessEvaluationAtomicCounterBuffers, Int32),
+    (:gl_MaxGeometryImageUniforms, Int32),
+    (:gl_MaxGeometryAtomicCounters, Int32),
+    (:gl_MaxGeometryAtomicCounterBuffers, Int32),
+    (:gl_MaxFragmentImageUniforms, Int32),
+    (:gl_MaxFragmentAtomicCounters, Int32),
+    (:gl_MaxFragmentAtomicCounterBuffers, Int32),
+    (:gl_MaxCombinedImageUniforms, Int32),
+    (:gl_MaxCombinedAtomicCounters, Int32),
+    (:gl_MaxCombinedAtomicCounterBuffers, Int32),
+    (:gl_MaxImageUnits, Int32),
+    (:gl_MaxCombinedImageUnitsAndFragmentOutputs, Int32),
+    (:gl_MaxImageSamples, Int32),
+    (:gl_MaxAtomicCounterBindings, Int32),
+    (:gl_MaxAtomicCounterBufferSize, Int32),
+    (:gl_MinProgramTexelOffset, Int32),
+    (:gl_MaxProgramTexelOffset, Int32),
+    (:gl_MaxComputeWorkGroupCount, IVec3),
+    (:gl_MaxComputeWorkGroupSize, IVec3),
+    (:gl_MaxComputeUniformComponents, Int32),
+    (:gl_MaxComputeTextureImageUnits, Int32),
+    (:gl_MaxComputeImageUniforms, Int32),
+    (:gl_MaxComputeAtomicCounters, Int32),
+    (:gl_MaxComputeAtomicCounterBuffers, Int32),
+    (:gl_MaxTransformFeedbackBuffers, Int32),
+    (:gl_MaxTransformFeedbackInterleavedComponents, Int32),
 ]
 
 # The rest of the context is just implementing the general PipelineContext "interface"
 
 CoreTypes.init_pipeline_ctx(::Type{GLSLPipelineContext}) =
-    GLSLPipelineContext(deepcopy(gl_vars), remove_env_sym_decls!, Vector(), Dict(), false, GLSLDeclaration[])
+    GLSLPipelineContext(deepcopy(GLVars), remove_env_sym_decls!, Vector(), Dict(), false, GLSLDeclaration[])
 
 CoreTypes.get_def_transform(ctx::GLSLPipelineContext) = ctx.def_transform
 
