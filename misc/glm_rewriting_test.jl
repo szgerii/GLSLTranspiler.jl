@@ -1,6 +1,3 @@
-using Pkg
-Pkg.activate(@__DIR__() * "/../")
-
 using Transpiler
 using Transpiler.GLSL
 

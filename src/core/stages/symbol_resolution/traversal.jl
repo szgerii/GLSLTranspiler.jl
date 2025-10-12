@@ -110,13 +110,24 @@ function collect_declaration!(ctx::ScopeContext, node::ScopedASTNode)
     decl_type = expr.head == :global ? SymGlobalDeclaration : SymLocalDeclaration
 
     target = expr.args[1]
+    sym = missing
     if target isa Symbol
         sym = target
-    elseif target isa Expr && target.head == :(::)
-        sym = target.args[1]
-    elseif target isa Expr && target.head == :decl
-        sym = target.args[1].value
-    else
+    elseif target isa Expr
+        if target.head == :(::)
+            sym = target.args[1]
+        elseif target.head == :(=)
+            sym = target.args[1] isa Symbol ? target.args[1] : target.args[1].args[1]
+        elseif target.head == :decl
+            sym = target.args[1].value
+            
+            if !ismissing(target.args[3])
+                decl_type = target.args[3].value == :global ? SymGlobalDeclaration : SymLocalDeclaration
+            end
+        end
+    end
+
+    if ismissing(sym)
         ast_error(expr, "Encountered declaration with unexpected structure")
     end
 

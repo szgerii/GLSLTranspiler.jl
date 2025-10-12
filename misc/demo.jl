@@ -1,8 +1,5 @@
 # Some general examples meant either for testing functionality or to provide demo code for presentation/documentation
 
-using Pkg
-Pkg.activate(@__DIR__() * "/../")
-
 macro skip(f...)
     :()
 end
@@ -167,7 +164,7 @@ j = 1
             discard()
         end
     end,
-    true
+    Transpiler.Verbose
 )
 
 
@@ -187,7 +184,7 @@ j = 1
         v3 = m43[:, i]
         m43_2 = m43[:, :]
     end,
-    false
+    #Transpiler.Verbose
 )
 
 
@@ -205,7 +202,7 @@ j = 1
 
         frag_col = vec4(1)
     end,
-    false
+    #Transpiler.Verbose
 )
 
 @skip code = @transpile(
@@ -227,7 +224,7 @@ j = 1
         #end
         x + 2
     end,
-    false
+    #Transpiler.Verbose
 )
 
 
@@ -257,12 +254,7 @@ code = @transpile(
         mat = mat2x3(0)
         t_mat = mat'
     end,
-    true
+    Transpiler.Verbose
 )
 
-
-
-
 println(code)
-
-

@@ -167,6 +167,15 @@ Removes the env symbol named `name` from `ctx`.
 remove_env_sym!(::PipelineContext, ::Symbol) =
     error("Invalid pipeline context: pipeline uses helper functions, but doesn't define a method for remove_env_sym!(ctx, name::Symbol)")
 
+export is_i32_i64_swap_allowed
+
+"""
+    is_i32_i64_swap_allowed(ctx::PipelineContext) -> Bool
+
+Return whether Int32 and Int64 types and values should be treated interchangeably.
+"""
+is_i32_i64_swap_allowed(::PipelineContext) = false
+
 """
     Pipeline(name, stages, ctx_type)
 

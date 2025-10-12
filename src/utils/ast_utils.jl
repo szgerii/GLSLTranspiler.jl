@@ -15,6 +15,9 @@ function ast_error(node::ASTNode, message...)
     error(message..., "\nThe above error occured while processing the following AST node:\n$str")
 end
 
+ast_error(node::ASTNodeRef, message...) =
+    ast_error(node[], message...)
+
 function ast_string(ex::Expr)
     str = ':' * string(ex.head)
 
@@ -31,9 +34,8 @@ function ast_string(ex::Expr)
     str
 end
 
-function ast_error(node::WrapperTree, message...)
+ast_error(node::WrapperTree, message...) =
     ast_error(get_original(node)[], message...)
-end
 
 ast_string(sym::Symbol) = ":$sym"
 ast_string(str::String) = "\"$str\""

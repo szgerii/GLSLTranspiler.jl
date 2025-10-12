@@ -4,6 +4,7 @@ using ...Transpiler
 using ...CoreTypes
 using ...Utils
 using ...SymbolResolution
+using ...TypeInference
 using ..GLSL
 
 import JuliaGLM

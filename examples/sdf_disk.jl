@@ -1,16 +1,21 @@
-using Pkg
-Pkg.activate(@__DIR__() * "/../")
-
 using Transpiler
 using Transpiler.GLSL
 using JuliaGLM
 
+Transpiler.transpiler_config.gl_rewrite_to_glm = false
+
+function get_mat()
+    return mat3x4(0)
+end
+
 code = @glsl(
     function sdf_disk(
-        @out(frag_col::Vec4),
-        @uniform(mouse::Vec4),
-        @uniform(resolution::IVec2)
+        (@out frag_col::Vec4),
+        (@uniform mouse::Vec4),
+        (@uniform resolution::IVec2)
     )
+        @constant MOUSE_EPS = 0.001
+
         p = (2.0 * gl_FragCoord[:xy] .- resolution["xy"]) ./ resolution["y"]
         m = (2.0 * mouse["xy"] .- resolution["xy"]) ./ resolution["y"]
 
@@ -27,14 +32,15 @@ code = @glsl(
         col *= 0.8 + 0.2 * cos(150 * d)
         col = mix(col, Vec3(1), 1.0 - smoothstep(0.0, 0.01, abs(d)))
 
-        if (mouse["z"] > 0.001)
+        if (mouse["z"] > MOUSE_EPS)
             d = length(m) - 0.5
             col = mix(col, Vec3(1, 1, 0), 1.0 - smoothstep(0.0, 0.005, abs(length(p .- m) - abs(d)) - 0.0025))
             col = mix(col, Vec3(1, 1, 0), 1.0 - smoothstep(0.0, 0.005, length(p .- m) - 0.015))
         end
 
         frag_col = Vec4(col, 1.0)
-    end
+    end,
+    #Transpiler.Verbose
 )
 
 println(code)

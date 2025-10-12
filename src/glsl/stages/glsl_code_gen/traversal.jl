@@ -3,15 +3,37 @@ const infix_functions = [:+, :-, :*, :/, :%, :(<=), :(<), :(>), :(>=), :(==), :(
 glsl_cg_traverse(node::GLSLEmptyNode, ctx::GLSLCodeGenContext) = ""
 
 function glsl_cg_traverse(node::GLSLLiteral, ctx::GLSLCodeGenContext)
-    suffix = ""
+    if node.type <: GLSLVec
+        vec = node.value
+        @debug_assert vec isa JuliaGLM.VecNT
 
-    if node.type == GLSLDouble
-        suffix = "lf"
+        n = length(vec)
+        el_type = eltype(vec)
+        vals = [vec...]
+        
+        @debug_assert el_type <: Union{Float32,Float64}
+        ctor = (el_type == Float32 ? "vec" : "dvec") * string(n)
+
+        return ctor * "(" * (allequal(vals) ? string(vals[1]) : join(vals, ", ")) * ")"
+    elseif node.type <: GLSLMat
+        mat = node.value
+        @debug_assert mat isa JuliaGLM.MatTNxM
+
+        (n, m) = size(mat)
+        el_type = eltype(mat)
+        vals = [mat...]
+
+        @debug_assert el_type <: Union{Float32,Float64}
+        ctor = (el_type == Float32 ? "mat" : "dmat") * string(n) * "x" * string(m)
+
+        return ctor * "(" * (allequal(vals) ? string(vals[1]) : join(vals, ", ")) * ")"
+    elseif node.type == GLSLDouble
+        return string(node.value) * "lf"
     elseif node.type == GLSLUInt
-        suffix = "u"
+        return string(node.value) * "u"
     end
 
-    string(node.value) * suffix
+    return string(node.value)
 end
 
 glsl_cg_traverse(node::GLSLSymbol, _::GLSLCodeGenContext) = string(node.sym)
@@ -44,6 +66,10 @@ function glsl_cg_traverse(node::GLSLBlock, ctx::GLSLCodeGenContext)
 
         expr_code = glsl_cg_traverse(expr, ctx)
 
+        if isempty(strip(expr_code))
+            continue
+        end
+
         if !(expr isa GLSLBlock) && !(expr isa GLSLNewLine)
             expr_code = padding * expr_code
             expr_code = replace(expr_code, r"\n(?! )" => "\n" * padding)
@@ -69,7 +95,12 @@ function glsl_cg_traverse(node::GLSLDeclaration, ctx::GLSLCodeGenContext)
         prefix *= " "
     end
 
-    prefix * type_to_str(node.type) * " " * glsl_cg_traverse(node.symbol, ctx)
+    suffix = ""
+    if !isnothing(node.initial_value)
+        suffix = " = " * glsl_cg_traverse(node.initial_value, ctx)
+    end
+
+    prefix * type_to_str(node.type) * " " * glsl_cg_traverse(node.symbol, ctx) * suffix
 end
 
 glsl_cg_traverse(node::GLSLAssignment, ctx::GLSLCodeGenContext) = "$(glsl_cg_traverse(node.lhs, ctx)) = $(glsl_cg_traverse(node.rhs, ctx))"

@@ -158,10 +158,13 @@ end
 @exported struct WriteOnlyQualifier <: MemoryQualifier end
 
 # Misc Qualifiers
+# TODO: figure out why Julia detects pre-binding access to these if they're directly subtypes of Qualifier and remove wrapper
 
-@exported struct InvariantQualifier <: Qualifier end
-@exported struct CentroidQualifier <: Qualifier end
-@exported struct SampleQualifier <: Qualifier end
+@exported abstract type MiscQualifier <: Qualifier end
+
+@exported struct InvariantQualifier <: MiscQualifier end
+@exported struct CentroidQualifier <: MiscQualifier end
+@exported struct SampleQualifier <: MiscQualifier end
 
 """
     decorate(mod::Module, qualifier::Qualifier, rest::Union{Expr,Symbol}) -> Expr
@@ -171,8 +174,26 @@ Expands a qualifier macro into a custom :decl [`Expr`](@ref)-format.
 """
 function decorate(mod::Module, qualifier::Qualifier, rest::Union{Expr,Symbol})
     rest = macroexpand(mod, rest; recursive=false)
+    rhs = nothing
 
-    if rest isa Symbol || (rest isa Expr && rest.head == :(::))
+    if rest isa Symbol || (rest isa Expr && rest.head in [:(::), :(=), :local, :global])
+        decl_type = missing
+        decl_val  = nothing
+        
+        # unwrap Julia declaration
+        if rest.head in [:local, :global]
+            decl_type = rest.head
+            rest = rest.args[1]
+        end
+
+        # unwrap assignment lhs
+        if rest.head == :(=)
+            rhs = rest.args[2]
+            rest = rest.args[1]
+
+            decl_val = QuoteNode(rhs)
+        end
+
         name = rest isa Symbol ? rest : rest.args[1]
         @debug_assert name isa Symbol
 
@@ -191,7 +212,7 @@ function decorate(mod::Module, qualifier::Qualifier, rest::Union{Expr,Symbol})
             end
         end
 
-        return Expr(:decl, QuoteNode(name), type, missing, Qualifier[qualifier])
+        return Expr(:decl, QuoteNode(name), type, decl_type isa Symbol ? QuoteNode(decl_type) : decl_type, Qualifier[qualifier], decl_val)
     elseif rest isa Expr && rest.head == :decl
         @debug_assert rest.args[4] isa Vector
 

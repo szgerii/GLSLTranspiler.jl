@@ -52,7 +52,8 @@ using .GLSL
         global _precomp_global
         _precomp_global = 0.0f0
 
-        local @constant @flat x::Int
+        @constant global const_var::Int64 = 2
+        local x::Int64
         x = 2
         y = 2.0f0
         z = 2.0

@@ -14,9 +14,7 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]
 InteractiveUtils = "1.11.0"
-JuliaGLM = "0.0.1"
 Pkg = "1.11.0"
 PrecompileTools = "1.2.1"
 StaticArrays = "1.9.15"
-Tagger = "0.0.5"
 Test = "1.11.0"

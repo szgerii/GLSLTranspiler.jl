@@ -1,9 +1,12 @@
 module GLSLCodeGen
 
+import ...Transpiler
 using ..CoreTypes
+using ..Utils
 using ..GLSL
 using ..GLSL.GLSLTransform
 
+import JuliaGLM
 using Tagger
 
 include("types/GLSLCodeGenContext.jl")
@@ -19,5 +22,4 @@ const GLSLCodeGenStage =
         output_names=["Generated GLSL Code"],
         output_formatters=[identity]
     )
-
 end

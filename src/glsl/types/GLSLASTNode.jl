@@ -13,11 +13,13 @@ GLSLNewLine() = GLSLNewLine(1)
     multiline::Bool
 end
 
+const GLSLLiteralValue = Union{ASTLiteral, JuliaGLM.VecNT, JuliaGLM.MatTNxM}
+
 @exported struct GLSLLiteral <: GLSLASTNode
-    value::ASTLiteral
+    value::GLSLLiteralValue
     type::DataType
 
-    GLSLLiteral(value::ASTLiteral, ::Type{T}) where {T<:GLSLType} = new(value, T)
+    GLSLLiteral(value::GLSLLiteralValue, ::Type{T}) where {T<:GLSLType} = new(value, T)
 end
 
 GLSLLiteral(value::ASTLiteral) = GLSLLiteral(value, to_glsl_type(TypeInference.to_tast(typeof(value))))
@@ -40,21 +42,17 @@ end
     body::Vector{GLSLASTNode}
 end
 
-export GLSLStorageQualifier, SQ_In, SQ_None, SQ_Out, SQ_Uniform
-@enum GLSLStorageQualifier SQ_None SQ_In SQ_Out SQ_Uniform
-
-to_storage_qualifier(sym::Symbol) = to_storage_qualifier(Val(sym))
-to_storage_qualifier(::Val{:in}) = SQ_In
-to_storage_qualifier(::Val{:out}) = SQ_Out
-to_storage_qualifier(::Val{:uniform}) = SQ_Uniform
-
 @exported struct GLSLDeclaration <: GLSLASTNode
     symbol::GLSLSymbol
     type::DataType
     qualifiers::Vector{Qualifier}
+    initial_value::Union{GLSLASTNode,Nothing}
 
-    GLSLDeclaration(sym::GLSLSymbol, ::Type{T}, qualifiers::Vector{Qualifier}=Qualifier[]) where {T<:GLSLType} =
-        new(sym, T, qualifiers)
+    GLSLDeclaration(sym::GLSLSymbol, ::Type{T},
+        qualifiers::Vector{Qualifier}=Qualifier[],
+        initial_value::Union{GLSLASTNode,Nothing}=nothing
+    ) where {T<:GLSLType} =
+        new(sym, T, qualifiers, initial_value)
 end
 
 @exported struct GLSLShader <: GLSLASTNode

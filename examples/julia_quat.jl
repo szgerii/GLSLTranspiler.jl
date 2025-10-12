@@ -1,6 +1,3 @@
-using Pkg
-Pkg.activate(@__DIR__() * "/../")
-
 using JuliaGLM
 using Transpiler
 using Transpiler.GLSL
@@ -13,7 +10,6 @@ code = @glsl(
         @uniform(mouse::Vec4),
     )
         function hash3(n::Float32)
-            x = mouse
             fract(sin(vec3(n, n + 1.0, n + 2.0)) .* vec3(43758.5453123, 22578.1459123, 19642.3490423))
         end
 

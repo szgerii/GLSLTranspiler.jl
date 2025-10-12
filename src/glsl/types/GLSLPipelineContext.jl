@@ -13,6 +13,7 @@ Stores context information for a GLSL pipeline transpilation.
 - `helpers::Vector{Tuple{Expr,Any}}`: List for storing helper function pipeline outputs
 - `helper_sigs::Dict{Tuple{Symbol,Tuple},DataType}`: Dictionary for looking up helper fn return types based on their name and signature
 - `in_helper::Bool`: Indicates whether the current stage is being ran on a helper function or the main function
+- `interface_decls::Vector{GLSLDeclaration}`: Temporary storage for interface-level declarations that will only be added to the generated code once the final shader code is being constructed
 """
 mutable struct GLSLPipelineContext <: PipelineContext
     env_syms::GLSLVarList
@@ -20,7 +21,7 @@ mutable struct GLSLPipelineContext <: PipelineContext
     helpers::Vector{Tuple{Expr,Any}}
     helper_sigs::Dict{Tuple{Symbol,Tuple},DataType}
     in_helper::Bool
-    interface_buffer::Vector{GLSLDeclaration}
+    interface_decls::Vector{GLSLDeclaration}
 end
 
 function remove_env_sym_decls!(f::Expr, pipeline_ctx::GLSLPipelineContext)
@@ -163,7 +164,8 @@ CoreTypes.init_pipeline_ctx(::Type{GLSLPipelineContext}) =
 
 CoreTypes.get_def_transform(ctx::GLSLPipelineContext) = ctx.def_transform
 
-CoreTypes.get_env_syms(ctx::GLSLPipelineContext) = map(var -> var[1], ctx.env_syms)
+CoreTypes.get_env_syms(ctx::GLSLPipelineContext) =
+    vcat(map(var -> var[1], ctx.env_syms), map(decl -> decl.symbol.sym, ctx.interface_decls))
 
 CoreTypes.add_helper!(ctx::GLSLPipelineContext, helper::Tuple{Expr,Any}) = push!(ctx.helpers, helper)
 CoreTypes.get_helpers(ctx::GLSLPipelineContext) = ctx.helpers
@@ -200,8 +202,23 @@ end
 
 CoreTypes.get_helper_ret_type(ctx::GLSLPipelineContext, name::Symbol, sig::Tuple) = get(ctx.helper_sigs, (name, sig), missing)
 
+CoreTypes.is_i32_i64_swap_allowed(::GLSLPipelineContext) = true
+
 function CoreTypes.get_env_sym_type(sym::Symbol, ctx::GLSLPipelineContext)
+    type = nothing
     idx = findfirst(var -> var[1] == sym, ctx.env_syms)
 
-    !isnothing(idx) ? ctx.env_syms[idx][2] : nothing
+    if !isnothing(idx)
+        type = ctx.env_syms[idx][2]
+    end
+
+    if isnothing(type)
+        idx = findfirst(decl -> decl.symbol.sym == sym, ctx.interface_decls)
+
+        if !isnothing(idx)
+            type = to_ast(ctx.interface_decls[idx].type)
+        end
+    end
+
+    type
 end

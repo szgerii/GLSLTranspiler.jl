@@ -1,6 +1,3 @@
-using Pkg
-Pkg.activate(@__DIR__() * "/../")
-
 using Transpiler
 using Transpiler.GLSL
 
@@ -16,10 +13,11 @@ z = 1
             end
 
             y = x
+            w = helper()
         end
     ),
     @__MODULE__();
-    log_level=Transpiler.Verbose
+#    log_level=Transpiler.Verbose
 )
 
 println(code)

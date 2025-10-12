@@ -53,6 +53,19 @@ function glsl_transform!(state::GLSLTransformState, ::Type{AssignmentTag}, ctx::
     lhs = state.children[1].glsl_node
     @debug_assert lhs isa GLSLSymbol || lhs isa GLSLSwizzle
 
+    target_sym = lhs isa GLSLSymbol ? lhs.sym : (lhs isa GLSLSwizzle && lhs.base isa GLSLSymbol) ? lhs.base.sym : nothing
+
+    if !isnothing(target_sym)
+        idx = findfirst(ctx.pipeline_ctx.interface_decls) do decl
+            decl.symbol.sym == target_sym
+        end
+        is_const = !isnothing(idx) && any(q -> q isa ConstantQualifier, ctx.pipeline_ctx.interface_decls[idx].qualifiers)
+
+        if is_const
+            ast_error(state.original, "Trying to reassign a const variable: ", target_sym)
+        end
+    end
+
     state.glsl_node = GLSLAssignment(lhs, state.children[2].glsl_node)
 end
 
@@ -93,7 +106,7 @@ function glsl_transform!(state::GLSLTransformState, ::Type{CallTag}, ctx::GTCont
     # ctor calls
     type = isdefined(ctx.defining_module, fsym) && ctx.defining_module.eval(:(typeof($fsym)))
     if type == DataType
-        glsl_type = to_glsl_type(TypeInference.to_tast(getfield(ctx.defining_module, fsym)))
+        glsl_type = to_glsl_type(getfield(ctx.defining_module, fsym))
         state.children[fsym_idx].glsl_node = GLSLTypeSymbol(glsl_type)
     end
 
@@ -110,7 +123,7 @@ function glsl_transform!(state::GLSLTransformState, ::Type{ReturnTag}, ctx::GTCo
 
     @debug_assert ret_type <: ASTValueType || ret_type == ASTVoid
 
-    state.glsl_node = ret_type <: ASTValueType ? GLSLReturn(ret_node) : GLSLReturn(nothing)
+    state.glsl_node = ret_type <: ASTValueType ? GLSLReturn(ret_node.glsl_node) : GLSLReturn(nothing)
 end
 
 function glsl_transform!(state::GLSLTransformState, ::Type{BreakTag}, ctx::GTContext)

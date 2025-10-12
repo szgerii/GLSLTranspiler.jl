@@ -1,7 +1,7 @@
 function run_glsl_transform(
     mod::Module, pipeline_ctx::GLSLPipelineContext, typed_ast::TypedASTNode, root_scope::Ref{Scope}, usyms::Vector{TypedUniqueSymbol}
 )
-    ctx = GTContext(mod)
+    ctx = GTContext(mod, pipeline_ctx)
 
     transform_state = glsl_traverse(typed_ast.children[2], ctx)
 
@@ -64,7 +64,7 @@ function run_glsl_transform(
     if !in_helper
         output = GLSLShader(param_decls, glsl_ast)
 
-        for decl in pipeline_ctx.interface_buffer
+        for decl in pipeline_ctx.interface_decls
             pushfirst!(output.interface_declarations, decl)
         end
     else
@@ -78,7 +78,7 @@ function run_glsl_transform(
     for usym in usyms
         if usym.def_scope_id == GLOBAL_SCOPE_ID
             pushfirst!(
-                !in_helper ? output.interface_declarations : pipeline_ctx.interface_buffer,
+                !in_helper ? output.interface_declarations : pipeline_ctx.interface_decls,
                 GLSLDeclaration(GLSLSymbol(usym.id), to_glsl_type(usym.type), Qualifier[UniformQualifier()])
             )
         end

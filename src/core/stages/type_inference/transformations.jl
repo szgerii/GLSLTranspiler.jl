@@ -23,7 +23,7 @@ function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTAssignmentTag}, ct
         @debug_assert isnothing(find_type(lhs.original[], ctx))
 
         add_type!(ctx, lhs.original[], rhs.type)
-    elseif lhs.type != rhs.type
+    elseif (lhs.type != rhs.type) && !(is_i32_i64_swap_allowed(ctx.pipeline_ctx) && all(n -> n.type <: Union{ASTInt32, ASTInt64}, [lhs, rhs]))
         # TODO: allow this through typed usyms
         ast_error(node.original[],
             "Reassignment to new type: Trying to bind variable '$vname' of type '$(lhs.type)' to a value of type '$(rhs.type)'.")
