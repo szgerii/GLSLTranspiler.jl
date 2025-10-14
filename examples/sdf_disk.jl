@@ -4,10 +4,6 @@ using JuliaGLM
 
 Transpiler.transpiler_config.gl_rewrite_to_glm = false
 
-function get_mat()
-    return mat3x4(0)
-end
-
 code = @glsl(
     function sdf_disk(
         (@out frag_col::Vec4),
