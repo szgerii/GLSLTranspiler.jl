@@ -7,7 +7,7 @@ end
 qualifier_to_str(q::ConstantQualifier) = "const"
 
 function qualifier_to_str(q::LayoutQualifier)
-    result = "layout("
+    result = "layout ("
 
     for option in q.options
         result *= string(option.name)

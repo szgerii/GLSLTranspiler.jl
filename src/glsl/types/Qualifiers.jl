@@ -113,11 +113,13 @@ const LAYOUT_QUALIFIER_OPTIONS = [
     value::Union{Integer,Nothing}
 
     function LayoutQualifierOption(name::Symbol, value::Union{Integer,Missing}=missing)
-        option = get(LAYOUT_QUALIFIER_OPTIONS, name, nothing)
+        option_idx = findfirst(opt -> opt[1] == name, LAYOUT_QUALIFIER_OPTIONS)
 
-        if isnothing(name)
+        if isnothing(option_idx)
             error("Trying to construct unknown layout qualifier option: $name")
         end
+
+        option = LAYOUT_QUALIFIER_OPTIONS[option_idx]
 
         needs_val = option[2]
         if needs_val
@@ -181,13 +183,13 @@ function decorate(mod::Module, qualifier::Qualifier, rest::Union{Expr,Symbol})
         decl_val  = nothing
         
         # unwrap Julia declaration
-        if rest.head in [:local, :global]
+        if rest isa Expr && rest.head in [:local, :global]
             decl_type = rest.head
             rest = rest.args[1]
         end
 
         # unwrap assignment lhs
-        if rest.head == :(=)
+        if rest isa Expr && rest.head == :(=)
             rhs = rest.args[2]
             rest = rest.args[1]
 
@@ -258,6 +260,81 @@ function gen_qualifier_macros()
     end
 end
 gen_qualifier_macros()
+
+# =====================
+# Special @layout macro
+# =====================
+
+export @layout
+
+macro layout(args...)
+    syms = Symbol[]
+    assignments = Expr[]
+
+    if length(args) == 1
+        error(
+            "Invalid @layout usage: empty argument list in a @layout call"
+        )
+    end
+
+    # for error messages
+    layout_str = "@layout $(join(args, ' '))"
+
+    for i in 1:lastindex(args)-1
+        if args[i] isa QuoteNode
+            args[i] = args[i].value
+        end
+
+        is_sym = args[i] isa Symbol
+        is_assignment = !is_sym && args[i] isa Expr && args[i].head == :(=)
+
+        if !is_sym && !is_assignment
+            error(
+                "Invalid @layout usage: non-Symbol, non-assignment argument in non-final position in the following @layout call:\n",
+                layout_str, "\n",
+                "Non-final arguments must be all Symbols (or QuoteNodes wrapping Symbols), or assignments, specifying the sub-qualifiers and values of the layout qualifier."
+            )
+        end
+
+        if is_sym
+            push!(syms, args[i])
+        else
+            push!(assignments, args[i])
+        end
+    end
+
+    options = LayoutQualifierOption[]
+
+    for sym in syms
+        push!(options, LayoutQualifierOption(sym))
+    end
+
+    for assignment in assignments
+        if assignment.args[1] isa QuoteNode
+            assignment.args[1] = assignment.args[1].value
+        end
+
+        if !(assignment.args[1] isa Symbol)
+            error(
+                "Invalid @layout usage: non-Symbol value found on the left-hand side of an assignment in the following @layout call:\n",
+                layout_str, "\n",
+                "Assignment left-hand sides must either be a Symbol, or a QuoteNode wrapping a Symbol."
+            )
+        end
+
+        if !(assignment.args[2] isa Integer)
+            error(
+                "Invalid @layout usage: expected integer literal value value on the right-hand side of an assignment in the following @layout call, got $(typeof(assignment.args[2])) instead:\n",
+                layout_str, "\n",
+                "Assignment right-hand sides must be integer literals."
+            )
+        end
+
+        push!(options, LayoutQualifierOption(assignment.args[1], assignment.args[2]))
+    end
+
+    decorate(__module__, LayoutQualifier(options), args[end])
+end
 
 # ================
 # Helper Functions

@@ -46,7 +46,7 @@ using .GLSL
 @compile_workload begin
     @transpile GLSL.GLSLPipeline function shadertoy_demo(
         GLSL.@out(a::Vec4),
-        @in(b::Float32),
+        @in(@layout std430 (binding=0) (location=0) b::Float32),
         @uniform(c::IVec2)
     )
         global _precomp_global
