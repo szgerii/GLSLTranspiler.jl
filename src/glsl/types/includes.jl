@@ -1,4 +1,7 @@
 include("Qualifiers.jl")
 include("GLSLType.jl")
+include("InterfaceBlock.jl")
+include("buffer.jl")
+include("qualifier_macros.jl")
 include("GLSLASTNode.jl")
 include("GLSLPipelineContext.jl")

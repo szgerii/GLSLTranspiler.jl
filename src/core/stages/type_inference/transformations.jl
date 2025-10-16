@@ -162,6 +162,10 @@ end
 function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTReturnTag}, ctx::TIContext)
     rtype = node.children[1].type
 
+    if rtype != ASTVoid && !get_in_helper(ctx.pipeline_ctx)
+        ast_error(node.original[], "Found non-empty return statement in the main function's body")
+    end
+
     if ctx.return_type != Nothing
         if ctx.return_type != rtype
             ast_error(node.original[],

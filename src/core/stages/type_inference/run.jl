@@ -90,13 +90,13 @@ function run_type_inference(
     # transform fn body sub-tree from scoped ast into typed ast
     push!(typed_ast.children, gen_typed_ast(scoped_ast.children[2], ctx))
 
-    if !isempty(typed_ast.children[2].children)
+    if get_in_helper(pipeline_ctx) !isempty(typed_ast.children[2].children)
         last_expr = typed_ast.children[2].children[end]
 
         if ctx.return_type != Nothing
             if last_expr.type != ctx.return_type
                 ast_error(last_expr.original[],
-                    "Invalid last statement in function: last statement's type ($(last_expr.type)) doesn't match the function's previously inferred return type ($rtype)")
+                    "Invalid last statement in function: last statement's type ($(last_expr.type)) doesn't match the function's previously inferred return type ($(ctx.return_type))")
             end
         else
             if !(last_expr.type <: ASTValueType || last_expr.type == ASTVoid)

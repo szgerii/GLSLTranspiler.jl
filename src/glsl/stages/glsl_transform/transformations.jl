@@ -114,6 +114,11 @@ function glsl_transform!(state::GLSLTransformState, ::Type{CallTag}, ctx::GTCont
 end
 
 function glsl_transform!(state::GLSLTransformState, ::Type{ReturnTag}, ctx::GTContext)
+    if state.typed_node.type == ASTVoid
+        state.glsl_node = GLSLReturn(nothing)
+        return
+    end
+
     transform_children!(state, ctx)
 
     @debug_assert length(state.children) == 1
@@ -121,9 +126,9 @@ function glsl_transform!(state::GLSLTransformState, ::Type{ReturnTag}, ctx::GTCo
     ret_node = state.children[1]
     ret_type = ret_node.typed_node.type
 
-    @debug_assert ret_type <: ASTValueType || ret_type == ASTVoid
+    @debug_assert ret_type <: ASTValueType
 
-    state.glsl_node = ret_type <: ASTValueType ? GLSLReturn(ret_node.glsl_node) : GLSLReturn(nothing)
+    state.glsl_node = GLSLReturn(ret_node.glsl_node)
 end
 
 function glsl_transform!(state::GLSLTransformState, ::Type{BreakTag}, ctx::GTContext)

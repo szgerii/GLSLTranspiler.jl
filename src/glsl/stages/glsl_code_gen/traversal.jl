@@ -196,3 +196,37 @@ function glsl_cg_traverse(node::GLSLMatIndexer, ctx::GLSLCodeGenContext)
 
     code
 end
+
+function glsl_cg_traverse(node::GLSLInterfaceBlock, ctx::GLSLCodeGenContext)
+    qualifiers = qualifier_to_str.(sort_qualifiers(node.qualifiers))
+    qualifiers_str = join(qualifiers, " ")
+    
+    code = qualifiers_str
+
+    if !isempty(node.qualifiers)
+        code *= " "
+    end
+
+    code *= glsl_cg_traverse(node.block_name, ctx) * " {\n"
+
+    ctx.indent_level += 4
+    padding = repeat(" ", ctx.indent_level)
+    
+    for member in node.members
+        code *= padding * glsl_cg_traverse(member, ctx) * ";\n"
+    end
+    
+    ctx.indent_level -= 4
+
+    code *= "}"
+
+    if !isnothing(node.instance_name)
+        code *= " " * glsl_cg_traverse(node.instance_name, ctx)
+    end
+
+    if !isnothing(node.array_specifier)
+        code *= "[" * glsl_cg_traverse(node.array_specifier, ctx) * "]"
+    end
+
+    code
+end

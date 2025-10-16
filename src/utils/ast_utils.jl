@@ -91,6 +91,8 @@ function get_param(f::Expr, name::Symbol)::Union{Expr,Symbol,Missing}
             pname = param_decl.args[1]
         elseif param_decl.head == :decl
             pname = param_decl.args[1].value
+        elseif param_decl.head == :buffer_blk_decl
+            continue
         end
 
         @debug_assert !ismissing(pname)

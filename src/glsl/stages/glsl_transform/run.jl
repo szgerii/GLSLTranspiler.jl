@@ -18,6 +18,27 @@ function run_glsl_transform(
     param_decls = GLSLDeclaration[]
     env_syms = get_env_syms(pipeline_ctx)
     in_helper = get_in_helper(pipeline_ctx)
+    interface_blocks = pipeline_ctx.interface_blocks
+    glsl_interface_blocks = GLSLInterfaceBlock[]
+
+    for blk in interface_blocks
+        member_decls = GLSLDeclaration[]
+
+        for member in blk.members
+            name = member[1]
+            type = member[2][1]
+            qualifiers = member[2][2]
+
+            decl = GLSLDeclaration(GLSLSymbol(name), type, qualifiers)
+            push!(member_decls, decl)
+        end
+
+        inst_name = !isnothing(blk.instance_name) ? GLSLSymbol(blk.instance_name) : nothing
+        arr_spec = !isnothing(blk.array_specifier) ? GLSLLiteral(blk.array_specifier) : nothing
+
+        glsl_blk = GLSLInterfaceBlock(GLSLSymbol(blk.block_name), blk.qualifiers, member_decls, inst_name, arr_spec)
+        push!(glsl_interface_blocks, glsl_blk)
+    end
 
     for usym in usyms
         is_param = usym.original_sym in params && usym.def_scope_id == FUNCTION_SCOPE_ID
@@ -33,13 +54,16 @@ function run_glsl_transform(
             original_sym = split(string(usym.id), USYM_INFIX)[1] |> Symbol
             param_decl = get_param(typed_ast.original[], original_sym)
 
-            qualifiers = (param_decl isa Expr && param_decl.head == :decl) ? param_decl.args[4] : Qualifier[]
+            is_custom_decl = param_decl isa Expr && param_decl.head == :decl
+
+            qualifiers = is_custom_decl ? param_decl.args[4] : Qualifier[]
+            init_val = is_custom_decl && param_decl.args[5] isa QuoteNode ? GLSLLiteral(param_decl.args[5].value) : nothing
 
             if !in_helper && !any(q -> q isa Union{InQualifier,OutQualifier,UniformQualifier}, qualifiers)
                 ast_error(param_decl, "Function acting as main entry point for GLSL shader cannot have parameters that are not marked with either in/out/uniform")
             end
 
-            push!(param_decls, GLSLDeclaration(sym_node, to_glsl_type(usym.type), qualifiers))
+            push!(param_decls, GLSLDeclaration(sym_node, to_glsl_type(usym.type), qualifiers, init_val))
         elseif !(sym_node.sym in env_syms)
             decl = find_decl(typed_ast, sym_node.sym)
 
@@ -62,7 +86,7 @@ function run_glsl_transform(
 
     local output
     if !in_helper
-        output = GLSLShader(param_decls, glsl_ast)
+        output = GLSLShader(param_decls, glsl_interface_blocks, glsl_ast)
 
         for decl in pipeline_ctx.interface_decls
             pushfirst!(output.interface_declarations, decl)

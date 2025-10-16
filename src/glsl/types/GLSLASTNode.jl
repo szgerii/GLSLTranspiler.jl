@@ -55,8 +55,25 @@ end
         new(sym, T, qualifiers, initial_value)
 end
 
+@exported struct GLSLInterfaceBlock <: GLSLASTNode
+    block_name::GLSLSymbol
+    qualifiers::Vector{Qualifier}
+    members::Vector{GLSLDeclaration}
+    instance_name::Union{GLSLSymbol,Nothing}
+    array_specifier::Union{GLSLLiteral,Nothing}
+    
+    function GLSLInterfaceBlock(
+        block_name::GLSLSymbol, qualifiers::Vector{Qualifier}=Qualifier[], members::Vector{GLSLDeclaration}=GLSLDeclaration[],
+        instance_name::Union{GLSLSymbol,Nothing}=nothing, array_specifier::Union{GLSLLiteral,Nothing}=nothing
+    )
+        new(block_name, qualifiers, members, instance_name, array_specifier)
+    end
+end
+
+
 @exported struct GLSLShader <: GLSLASTNode
     interface_declarations::Vector{GLSLDeclaration}
+    interface_blocks::Vector{GLSLInterfaceBlock}
     body::GLSLBlock
 end
 

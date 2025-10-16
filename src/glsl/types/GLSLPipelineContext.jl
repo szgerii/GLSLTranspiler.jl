@@ -22,6 +22,7 @@ mutable struct GLSLPipelineContext <: PipelineContext
     helper_sigs::Dict{Tuple{Symbol,Tuple},DataType}
     in_helper::Bool
     interface_decls::Vector{GLSLDeclaration}
+    interface_blocks::Vector{InterfaceBlock}
 end
 
 function remove_env_sym_decls!(f::Expr, pipeline_ctx::GLSLPipelineContext)
@@ -160,12 +161,16 @@ const GLVars = [
 # The rest of the context is just implementing the general PipelineContext "interface"
 
 CoreTypes.init_pipeline_ctx(::Type{GLSLPipelineContext}) =
-    GLSLPipelineContext(deepcopy(GLVars), remove_env_sym_decls!, Vector(), Dict(), false, GLSLDeclaration[])
+    GLSLPipelineContext(deepcopy(GLVars), remove_env_sym_decls!, Vector(), Dict(), false, GLSLDeclaration[], InterfaceBlock[])
 
 CoreTypes.get_def_transform(ctx::GLSLPipelineContext) = ctx.def_transform
 
 CoreTypes.get_env_syms(ctx::GLSLPipelineContext) =
-    vcat(map(var -> var[1], ctx.env_syms), map(decl -> decl.symbol.sym, ctx.interface_decls))
+    vcat(
+        map(var -> var[1], ctx.env_syms),
+        map(decl -> decl.symbol.sym, ctx.interface_decls),
+        (map(block -> keys(block.members), ctx.interface_blocks)...)...
+    )
 
 CoreTypes.add_helper!(ctx::GLSLPipelineContext, helper::Tuple{Expr,Any}) = push!(ctx.helpers, helper)
 CoreTypes.get_helpers(ctx::GLSLPipelineContext) = ctx.helpers
@@ -217,6 +222,20 @@ function CoreTypes.get_env_sym_type(sym::Symbol, ctx::GLSLPipelineContext)
 
         if !isnothing(idx)
             type = to_ast(ctx.interface_decls[idx].type)
+        end
+    end
+
+    if isnothing(type)
+        for block in ctx.interface_blocks
+            if !isnothing(block.instance_name)
+                continue
+            end
+            
+            for member in block.members
+                if member[1] == sym
+                    return member[2][1]
+                end
+            end
         end
     end
 
