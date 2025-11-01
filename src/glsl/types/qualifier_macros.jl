@@ -191,3 +191,15 @@ macro layout(args...)
 
     decorate(__module__, qualifier, args[end])
 end
+
+# ==============================
+# Compute shader specific macros
+# ==============================
+
+export @local_size
+
+macro local_size(x::Int, y::Int=1, z::Int=1)
+    @debug_assert x > 0 && y > 0 && z > 0 "Cannot set local size of compute shader to a non-positive value"
+
+    return Expr(:local_size, x, y, z)
+end

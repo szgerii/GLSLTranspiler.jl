@@ -14,6 +14,7 @@ Stores context information for a GLSL pipeline transpilation.
 - `helper_sigs::Dict{Tuple{Symbol,Tuple},DataType}`: Dictionary for looking up helper fn return types based on their name and signature
 - `in_helper::Bool`: Indicates whether the current stage is being ran on a helper function or the main function
 - `interface_decls::Vector{GLSLDeclaration}`: Temporary storage for interface-level declarations that will only be added to the generated code once the final shader code is being constructed
+- `local_size::Union{SArray{Tuple{3},Int},Nothing}`: Optional local size declaration for compute shaders (nothing for other shaders)
 """
 mutable struct GLSLPipelineContext <: PipelineContext
     env_syms::GLSLVarList
@@ -23,6 +24,7 @@ mutable struct GLSLPipelineContext <: PipelineContext
     in_helper::Bool
     interface_decls::Vector{GLSLDeclaration}
     interface_blocks::Vector{InterfaceBlock}
+    local_size::Union{SArray{Tuple{3},Int},Nothing}
 end
 
 function remove_env_sym_decls!(f::Expr, pipeline_ctx::GLSLPipelineContext)
@@ -161,7 +163,7 @@ const GLVars = [
 # The rest of the context is just implementing the general PipelineContext "interface"
 
 CoreTypes.init_pipeline_ctx(::Type{GLSLPipelineContext}) =
-    GLSLPipelineContext(deepcopy(GLVars), remove_env_sym_decls!, Vector(), Dict(), false, GLSLDeclaration[], InterfaceBlock[])
+    GLSLPipelineContext(deepcopy(GLVars), remove_env_sym_decls!, Vector(), Dict(), false, GLSLDeclaration[], InterfaceBlock[], nothing)
 
 CoreTypes.get_def_transform(ctx::GLSLPipelineContext) = ctx.def_transform
 

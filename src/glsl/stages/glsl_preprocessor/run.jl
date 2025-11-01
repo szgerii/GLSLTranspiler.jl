@@ -15,7 +15,7 @@ function run_glsl_preprocessor(mod::Module, pipeline_ctx::GLSLPipelineContext, a
 
         if param.head == :decl
             param.args[3] = :param
-            
+
             if any(qualifier -> qualifier isa Union{InQualifier,OutQualifier,UniformQualifier}, param.args[4])
                 push!(pipeline_ctx.env_syms, (param.args[1].value, param.args[2]))
             end
@@ -32,8 +32,12 @@ function run_glsl_preprocessor(mod::Module, pipeline_ctx::GLSLPipelineContext, a
                 push!(block.qualifiers, BufferQualifier())
             end
 
-            
             push!(pipeline_ctx.interface_blocks, block)
+
+            i -= 1
+            deleteat!(fdecl.args, i)
+        elseif param.head == :local_size
+            pipeline_ctx.local_size = param.args
 
             i -= 1
             deleteat!(fdecl.args, i)

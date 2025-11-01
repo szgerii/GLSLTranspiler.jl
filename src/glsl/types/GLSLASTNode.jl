@@ -42,7 +42,9 @@ end
     body::Vector{GLSLASTNode}
 end
 
-@exported struct GLSLDeclaration <: GLSLASTNode
+@exported abstract type AbstractGLSLDeclaration <: GLSLASTNode end
+
+@exported struct GLSLDeclaration <: AbstractGLSLDeclaration
     symbol::GLSLSymbol
     type::DataType
     qualifiers::Vector{Qualifier}
@@ -53,6 +55,10 @@ end
         initial_value::Union{GLSLASTNode,Nothing}=nothing
     ) where {T<:GLSLType} =
         new(sym, T, qualifiers, initial_value)
+end
+
+@exported struct GLSLLocalSizeDeclaration <: AbstractGLSLDeclaration
+    dims::SArray{Tuple{3},Int}
 end
 
 @exported struct GLSLInterfaceBlock <: GLSLASTNode
@@ -70,9 +76,8 @@ end
     end
 end
 
-
 @exported struct GLSLShader <: GLSLASTNode
-    interface_declarations::Vector{GLSLDeclaration}
+    interface_declarations::Vector{AbstractGLSLDeclaration}
     interface_blocks::Vector{GLSLInterfaceBlock}
     body::GLSLBlock
 end

@@ -7,6 +7,7 @@ using ...SymbolResolution
 using ...TypeInference
 using ..GLSL
 
+using StaticArrays
 import JuliaGLM
 
 include("traversal.jl")

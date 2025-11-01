@@ -2,8 +2,6 @@ using Transpiler
 using Transpiler.GLSL
 using JuliaGLM
 
-# TODO: layout(local_sizes...) in;
-
 Transpiler.transpiler_config.gl_block_conflict = Transpiler.BCS_Overwrite
 Transpiler.transpiler_config.gl_rewrite_to_glm = false
 
@@ -13,6 +11,7 @@ add_qualifier!(:TestBuffer, LayoutQualifier([LayoutQualifierOption(:std430), Lay
 
 code = @glsl(
     function test_compute(
+        @local_size(256),
         @buffer(TestBuffer),
         @uniform(N::UInt32),
         @uniform(p::Vec3),

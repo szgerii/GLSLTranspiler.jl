@@ -99,6 +99,14 @@ function run_glsl_transform(
         output = GLSLFunction(fn_name, param_decls, to_glsl_type(typed_ast.type), GLSLBlock(glsl_ast.body))
     end
 
+    if !isnothing(pipeline_ctx.local_size)
+        if in_helper
+            error("@local_size declaration found in helper declaration, these are only valid in main function declarations.")
+        end
+
+        pushfirst!(output.interface_declarations, GLSLLocalSizeDeclaration(pipeline_ctx.local_size))
+    end
+
     for usym in usyms
         if usym.def_scope_id == GLOBAL_SCOPE_ID
             pushfirst!(

@@ -53,6 +53,10 @@ function get_param_names(f::Expr)::Vector{Symbol}
     fdecl = f.args[1]
 
     for param_decl in fdecl.args[2:end]
+        if param_decl isa Expr && param_decl.head in [:buffer_blk_decl, :local_size]
+            continue
+        end
+
         @debug_assert param_decl isa Symbol || (param_decl isa Expr && param_decl.head in [:(::), :decl])
 
         if param_decl isa Symbol
@@ -91,7 +95,7 @@ function get_param(f::Expr, name::Symbol)::Union{Expr,Symbol,Missing}
             pname = param_decl.args[1]
         elseif param_decl.head == :decl
             pname = param_decl.args[1].value
-        elseif param_decl.head == :buffer_blk_decl
+        elseif param_decl.head in [:buffer_blk_decl, :local_size]
             continue
         end
 

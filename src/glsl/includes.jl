@@ -5,6 +5,7 @@ using ..CoreTypes
 using ..Utils
 using ..TypeInference
 
+using StaticArrays
 using JuliaGLM
 
 include("types/includes.jl")

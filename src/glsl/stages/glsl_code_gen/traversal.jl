@@ -230,3 +230,9 @@ function glsl_cg_traverse(node::GLSLInterfaceBlock, ctx::GLSLCodeGenContext)
 
     code
 end
+
+function glsl_cg_traverse(node::GLSLLocalSizeDeclaration, ::GLSLCodeGenContext)
+    "layout(local_size_x = " * string(node.dims[1]) *
+    ", local_size_y = " * string(node.dims[2]) *
+    ", local_size_z = " * string(node.dims[3]) * ") in"
+end

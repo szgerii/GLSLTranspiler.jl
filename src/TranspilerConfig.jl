@@ -19,8 +19,8 @@ export BlockConflictStrategy
     gl_rewrite_to_glm::Bool = true
     
     # control shader header versioning through these two
-    gl_version::Unsigned = 330
-    gl_core::Bool        = true
+    gl_version::Unsigned  = 330
+    gl_version_core::Bool = true
 
     # whether transpile-time evaluation happens for const assignment rhs
     # e.g. `@constant global x = 2 + 1` will be automatically converted to `const int x = 3`
@@ -29,7 +29,7 @@ export BlockConflictStrategy
     gl_const_eval::Bool = true
 
     # determines if the transpiler overwrites previously stored interface blocks with conflicting
-    # block names when a new interface block is inserted into __INTERFACE_BLOCKS.
+    # block names when a new interface block is inserted into __interface_blocks.
     #
     # Its type is the BlockConflictStrategy enum, which can be one of the following:
     # BCS_Error (default): 
