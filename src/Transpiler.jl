@@ -49,8 +49,7 @@ using .GLSL
         @in(@layout std430 (binding=0) (location=0) b::Float32),
         @uniform(c::IVec2)
     )
-        global _precomp_global
-        _precomp_global = 0.0f0
+        _precomp_global
 
         @constant global const_var::Int64 = 2
         local x::Int64

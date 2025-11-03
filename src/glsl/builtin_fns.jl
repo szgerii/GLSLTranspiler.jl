@@ -278,7 +278,7 @@ function TypeInference.builtin_fn_ret_type(::GLCtx, ::Val{:outerProduct}, ::Type
         return nothing
     end
 
-    v1_el_count, v2_el_count = elcount(V1), elcount(V2)
+    v1_el_count, v2_el_count = length(V1), length(V2)
 
     get_ast_mat_type(el_type, v2_el_count, v1_el_count)
 end

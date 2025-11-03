@@ -1,7 +1,11 @@
+try_transform_array_type(::Type{<:SVector{T}}) where T = SVector{0, T}
+try_transform_array_type(::Type{<:SVector{N, T}}) where {N, T} = SVector{N, T}
+try_transform_array_type(::Type{T}) where T = T
+
 #=
-==================
+===============================
 Custom declaration Expr format:
-==================
+===============================
 head = :(decl)
 args:
   [1]::Union{QuoteNode,Symbol} - the target variable's name 
@@ -54,6 +58,17 @@ function decorate(mod::Module, qualifier::Qualifier, rest::Union{Expr,Symbol})
             if type isa Symbol
                 @debug_assert isdefined(mod, type)
                 type = getfield(mod, type)
+            end
+
+            # parametric types (like SVector{S,T})
+            if type isa Expr
+                type = @eval $type
+
+                @debug_assert type <: StaticArray{}
+            end
+
+            if !isconcretetype(type) && type <: Union{SVector, MVector}
+                type = try_transform_array_type(type)
             end
         end
 

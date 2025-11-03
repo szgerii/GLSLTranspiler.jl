@@ -1,5 +1,16 @@
 # utility for zero-based indexing transformation
-wrap_minus_one(node::GLSLASTNode) = GLSLCall(GLSLSymbol(:(-)), [node, GLSLLiteral(1)])
+function wrap_minus_one(node::GLSLASTNode)
+    if node isa GLSLLiteral
+        @debug_assert node.type in [GLSLInt, GLSLUInt]
+
+        node.value -= 1
+
+        return node
+    end
+
+    # fall back to manually subtracting one
+    GLSLCall(GLSLSymbol(:(-)), [node, GLSLLiteral(1)])
+end
 
 function transform_children!(
     state::GLSLTransformState, ctx::GTContext, first::Int=1, last::Int=length(state.typed_node.children);
@@ -51,18 +62,21 @@ function glsl_transform!(state::GLSLTransformState, ::Type{AssignmentTag}, ctx::
     @debug_assert length(state.children) == 2
 
     lhs = state.children[1].glsl_node
-    @debug_assert lhs isa GLSLSymbol || lhs isa GLSLSwizzle
+    @debug_assert typeof(lhs) in [GLSLSymbol, GLSLSwizzle, GLSLArrayIndexer]
 
     target_sym = lhs isa GLSLSymbol ? lhs.sym : (lhs isa GLSLSwizzle && lhs.base isa GLSLSymbol) ? lhs.base.sym : nothing
 
     if !isnothing(target_sym)
-        idx = findfirst(ctx.pipeline_ctx.interface_decls) do decl
-            decl.symbol.sym == target_sym
-        end
-        is_const = !isnothing(idx) && any(q -> q isa ConstantQualifier, ctx.pipeline_ctx.interface_decls[idx].qualifiers)
+        inter_decl_idx = findfirst(decl -> decl.symbol.sym == target_sym, ctx.pipeline_ctx.interface_decls)
+        is_const = !isnothing(inter_decl_idx) &&
+            any(q -> q isa ConstantQualifier, ctx.pipeline_ctx.interface_decls[inter_decl_idx].qualifiers)
 
-        if is_const
-            ast_error(state.original, "Trying to reassign a const variable: ", target_sym)
+        param_decl_idx = findfirst(decl -> decl.symbol.sym == target_sym, ctx.param_decls)
+        is_immutable = !isnothing(param_decl_idx) &&
+            any(q -> typeof(q) in [InQualifier,UniformQualifier], ctx.param_decls[param_decl_idx].qualifiers)
+
+        if is_const || is_immutable
+            ast_error(state.original, "Trying to reassign a const or immutable variable: ", target_sym)
         end
     end
 
@@ -90,7 +104,6 @@ function glsl_transform!(state::GLSLTransformState, ::Type{CallTag}, ctx::GTCont
         fstate.glsl_node = GLSLSymbol(nameof(f))
 
         state.children[1] = fstate
-        #insert!(state.children, 1, fstate)
     end
 
     @debug_assert !isempty(state.children)
@@ -331,11 +344,20 @@ function glsl_transform!(state::GLSLTransformState, ::Type{IndexerTag}, ctx::GTC
         end
 
         state.glsl_node = result
-    else
+    elseif target_type <: ASTVec
         idx = state.original[].args[2]
-        @debug_assert 1 <= idx <= elcount(state.children[1].typed_node.type)
+        @debug_assert 1 <= idx <= length(state.children[1].typed_node.type)
 
         state.glsl_node = GLSLSwizzle(state.children[1].glsl_node, "xyzw"[idx] |> string)
+    elseif target_type <: ASTList
+        idx_node = wrap_minus_one(state.children[2].glsl_node)
+
+        @debug_assert length(state.children) == 2
+        @debug_assert state.children[2].typed_node.type <: Union{ASTInt32,ASTInt64,ASTUInt32}
+
+        state.glsl_node = GLSLArrayIndexer(state.children[1].glsl_node, idx_node)
+    else
+        ast_error(state.original[], "Indexing into invalid type: $(target_type)")
     end
 end
 

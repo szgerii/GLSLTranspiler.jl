@@ -197,6 +197,9 @@ function glsl_cg_traverse(node::GLSLMatIndexer, ctx::GLSLCodeGenContext)
     code
 end
 
+glsl_cg_traverse(node::GLSLArrayIndexer, ctx::GLSLCodeGenContext) =
+    glsl_cg_traverse(node.target, ctx) * "[" * glsl_cg_traverse(node.index, ctx) * "]"
+
 function glsl_cg_traverse(node::GLSLInterfaceBlock, ctx::GLSLCodeGenContext)
     qualifiers = qualifier_to_str.(sort_qualifiers(node.qualifiers))
     qualifiers_str = join(qualifiers, " ")

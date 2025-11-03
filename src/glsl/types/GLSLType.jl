@@ -67,3 +67,16 @@ for n in 2:4
         end
     end
 end
+
+const ValueType = Union{Int32,Int64,UInt32,Float32,Float64,Bool,VecNT,MatTNxM}
+const GLSLValueType = Union{GLSLInt,GLSLUInt,GLSLFloat,GLSLDouble,GLSLBool,GLSLVec,GLSLMat}
+
+export GLSLValueType
+
+@exported struct GLSLArray{N, T <: GLSLValueType} <: GLSLType end
+
+to_glsl_type(::Type{<:ASTList{N, T}}) where {N, T <: Union{GLSLValueType, ValueType, ASTValueType}} =
+    GLSLArray{N, T <: GLSLValueType ? T : to_glsl_type(T)}
+TypeInference.to_tast(::Type{<:GLSLArray{N, T}}) where {N, T <: GLSLValueType} = ASTList{N, to_tast(T)}
+TypeInference.to_ast(::Type{<:GLSLArray{N, T}}) where {N, T <: GLSLValueType} =
+    N > 0 ? SVector{N, to_ast(T)} : SVector{to_ast(T)}

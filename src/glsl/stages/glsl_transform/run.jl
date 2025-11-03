@@ -1,7 +1,36 @@
 function run_glsl_transform(
     mod::Module, pipeline_ctx::GLSLPipelineContext, typed_ast::TypedASTNode, root_scope::Ref{Scope}, usyms::Vector{TypedUniqueSymbol}
 )
-    ctx = GTContext(mod, pipeline_ctx)
+    in_helper = get_in_helper(pipeline_ctx)
+    env_syms = get_env_syms(pipeline_ctx)
+    params = get_param_names(typed_ast.original[])
+    param_decls = GLSLDeclaration[]
+
+    for usym in usyms
+        if usym.def_scope_id == GLOBAL_SCOPE_ID
+            pushfirst!(
+                #!in_helper ? output.interface_declarations : pipeline_ctx.interface_decls,
+                param_decls,
+                GLSLDeclaration(GLSLSymbol(usym.id), to_glsl_type(usym.type), Qualifier[UniformQualifier()])
+            )
+        elseif usym.original_sym in params && usym.def_scope_id == FUNCTION_SCOPE_ID
+            original_sym = split(string(usym.id), USYM_INFIX)[1] |> Symbol
+            param_decl = get_param(typed_ast.original[], original_sym)
+
+            is_custom_decl = param_decl isa Expr && param_decl.head == :decl
+
+            qualifiers = is_custom_decl ? param_decl.args[4] : Qualifier[]
+            init_val = is_custom_decl && param_decl.args[5] isa QuoteNode ? GLSLLiteral(param_decl.args[5].value) : nothing
+
+            if !in_helper && !any(q -> q isa Union{InQualifier,OutQualifier,UniformQualifier}, qualifiers)
+                ast_error(param_decl, "Function acting as main entry point for GLSL shader cannot have parameters that are not marked with either in/out/uniform")
+            end
+
+            push!(param_decls, GLSLDeclaration(GLSLSymbol(usym.id), to_glsl_type(usym.type), qualifiers, init_val))
+        end
+    end
+
+    ctx = GTContext(mod, pipeline_ctx, param_decls)
 
     transform_state = glsl_traverse(typed_ast.children[2], ctx)
 
@@ -14,10 +43,6 @@ function run_glsl_transform(
     pushfirst!(glsl_ast.body, GLSLNewLine())
 
     fn_name = typed_ast.original[].args[1].args[1]
-    params = get_param_names(typed_ast.original[])
-    param_decls = GLSLDeclaration[]
-    env_syms = get_env_syms(pipeline_ctx)
-    in_helper = get_in_helper(pipeline_ctx)
     interface_blocks = pipeline_ctx.interface_blocks
     glsl_interface_blocks = GLSLInterfaceBlock[]
 
@@ -41,38 +66,21 @@ function run_glsl_transform(
     end
 
     for usym in usyms
-        is_param = usym.original_sym in params && usym.def_scope_id == FUNCTION_SCOPE_ID
         in_global = usym.def_scope_id == GLOBAL_SCOPE_ID
 
         if usym.type == ASTFunction || in_global
             continue
         end
 
-        sym_node = GLSLSymbol(usym.id)
-
-        if is_param
-            original_sym = split(string(usym.id), USYM_INFIX)[1] |> Symbol
-            param_decl = get_param(typed_ast.original[], original_sym)
-
-            is_custom_decl = param_decl isa Expr && param_decl.head == :decl
-
-            qualifiers = is_custom_decl ? param_decl.args[4] : Qualifier[]
-            init_val = is_custom_decl && param_decl.args[5] isa QuoteNode ? GLSLLiteral(param_decl.args[5].value) : nothing
-
-            if !in_helper && !any(q -> q isa Union{InQualifier,OutQualifier,UniformQualifier}, qualifiers)
-                ast_error(param_decl, "Function acting as main entry point for GLSL shader cannot have parameters that are not marked with either in/out/uniform")
-            end
-
-            push!(param_decls, GLSLDeclaration(sym_node, to_glsl_type(usym.type), qualifiers, init_val))
-        elseif !(sym_node.sym in env_syms)
-            decl = find_decl(typed_ast, sym_node.sym)
+        if !(usym.id in env_syms)
+            decl = find_decl(typed_ast, usym.id)
 
             qualifiers = Qualifier[]
             if !isnothing(decl) && decl.original[].head == :decl
                 qualifiers = decl.children[4].original[]
             end
 
-            pushfirst!(glsl_ast.body, GLSLDeclaration(sym_node, to_glsl_type(usym.type), qualifiers))
+            pushfirst!(glsl_ast.body, GLSLDeclaration(GLSLSymbol(usym.id), to_glsl_type(usym.type), qualifiers))
         end
     end
 
@@ -105,15 +113,6 @@ function run_glsl_transform(
         end
 
         pushfirst!(output.interface_declarations, GLSLLocalSizeDeclaration(pipeline_ctx.local_size))
-    end
-
-    for usym in usyms
-        if usym.def_scope_id == GLOBAL_SCOPE_ID
-            pushfirst!(
-                !in_helper ? output.interface_declarations : pipeline_ctx.interface_decls,
-                GLSLDeclaration(GLSLSymbol(usym.id), to_glsl_type(usym.type), Qualifier[UniformQualifier()])
-            )
-        end
     end
 
     (output)

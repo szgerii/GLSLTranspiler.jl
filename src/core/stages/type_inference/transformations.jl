@@ -213,19 +213,22 @@ end
 const swizzle_groups = ["xyzw", "rgba", "stpq"]
 
 function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTRefTag}, ctx::TIContext)
-    if node.children[1].type <: ASTVec # swizzle or vec indexing
-        handle_vec_index!(node, ctx)
-    elseif node.children[1].type <: ASTMat # mat indexing
-        handle_mat_index!(node, ctx)
+    coll_type = node.children[1].type
+    if coll_type <: ASTVec # swizzle or vec indexing
+        handle_vec_index!(node)
+    elseif coll_type <: ASTMat # mat indexing
+        handle_mat_index!(node)
+    elseif coll_type <: ASTList
+        handle_arr_index!(node)
     else
-        ast_error(node.original[], "Trying to index into unsupported type: $(node.children[1].type)")
+        ast_error(node.original[], "Trying to index into unsupported type: $(coll_type)")
     end
 end
 
-function handle_vec_index!(node::TypedASTNode, _::TIContext)
+function handle_vec_index!(node::TypedASTNode)
     vec_node = node.children[1]
     el_type = eltype(vec_node.type)
-    el_count = elcount(vec_node.type)
+    el_count = length(vec_node.type)
 
     if length(node.children) < 2
         ast_error(node.original[], "Trying to dereference a vector ($(vec_node.type))")
@@ -295,7 +298,7 @@ function handle_vec_index!(node::TypedASTNode, _::TIContext)
     end
 end
 
-function handle_mat_index!(node::TypedASTNode, _::TIContext)
+function handle_mat_index!(node::TypedASTNode)
     node.type = ASTVoid
 
     mat_node = node.children[1]
@@ -336,6 +339,30 @@ function handle_mat_index!(node::TypedASTNode, _::TIContext)
     if node.type == ASTVoid
         ast_error(node.original[], "Couldn't determine type for indexer into matrix type $(mat_node.type). This may be the result of using an unsupported indexer format.")
     end
+end
+
+function handle_arr_index!(node::TypedASTNode)
+    @debug_assert length(node.children) == 2 "Invalid number of indexer arguments for array indexing"
+    
+    arr_node = node.children[1]
+    idx_node = node.children[2]
+    idx = idx_node.original[]
+
+    if !(idx_node.type <: Union{ASTInt32,ASTInt64,ASTUInt32,ASTUInt64})
+        ast_error(node.original[], "Invalid indexer type used for array indexing: $(idx_node.type). Only integer types are supported.")
+    end
+
+    # bounds checking for literal indexes
+    if idx isa ASTLiteral
+        n = length(arr_node.type)
+        
+        # we keep 1-based indexing here (core pipeline aims to stay close to Julia for now)
+        if n > 0 && idx > n || idx < 1
+            ast_error(node.original[], "Index out of bounds error for literal index '$(idx)' into array '$(arr_node.original[])' of size $n.")
+        end
+    end
+
+    node.type = eltype(arr_node.type)
 end
 
 precomp_subtypes(TASTNodeTag, infer_typed_ast_node!, (TypedASTNode, missing, TIContext))

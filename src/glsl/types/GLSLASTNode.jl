@@ -15,7 +15,7 @@ end
 
 const GLSLLiteralValue = Union{ASTLiteral, JuliaGLM.VecNT, JuliaGLM.MatTNxM}
 
-@exported struct GLSLLiteral <: GLSLASTNode
+@exported mutable struct GLSLLiteral <: GLSLASTNode
     value::GLSLLiteralValue
     type::DataType
 
@@ -102,8 +102,13 @@ end
 
 precomp_subtypes(GLSLASTNode, GLSLSwizzle, (missing, String))
 
+@exported struct GLSLArrayIndexer <: GLSLASTNode
+    target::GLSLASTNode
+    index::GLSLASTNode
+end
+
 @exported struct GLSLAssignment <: GLSLASTNode
-    lhs::Union{GLSLSymbol,GLSLSwizzle}
+    lhs::Union{GLSLSymbol,GLSLSwizzle,GLSLArrayIndexer}
     rhs::GLSLASTNode
 end
 

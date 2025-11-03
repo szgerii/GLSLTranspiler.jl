@@ -1,7 +1,5 @@
 export GLSLPipelineContext
 
-const GLSLVarList = Vector{Tuple{Symbol,DataType}}
-
 """
     GLSLPipelineContext(env_syms, def_transform, helpers, helper_sigs, in_helper) <: PipelineContext
 
@@ -17,7 +15,7 @@ Stores context information for a GLSL pipeline transpilation.
 - `local_size::Union{SArray{Tuple{3},Int},Nothing}`: Optional local size declaration for compute shaders (nothing for other shaders)
 """
 mutable struct GLSLPipelineContext <: PipelineContext
-    env_syms::GLSLVarList
+    env_syms::Vector{Tuple{Symbol,DataType}}
     def_transform::Union{Function,Nothing,Missing}
     helpers::Vector{Tuple{Expr,Any}}
     helper_sigs::Dict{Tuple{Symbol,Tuple},DataType}

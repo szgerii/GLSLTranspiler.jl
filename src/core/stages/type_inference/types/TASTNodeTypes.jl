@@ -31,7 +31,7 @@ is_ast_integer(::Type{<:ASTType}) = false
 
 # VECTORS
 
-export VEC_EL_TYPES, elcount, get_ast_vec_type
+export VEC_EL_TYPES, get_ast_vec_type
 
 const VEC_EL_TYPES = [
     ("F", Float32),
@@ -42,9 +42,6 @@ const VEC_EL_TYPES = [
 ]
 
 @exported abstract type ASTVec <: ASTType end
-
-elcount(::Type{T}) where {T<:ASTVec} =
-    error("Invalid AST vector type: $T\n", "No elcount method exists for AST vector subtype.")
 
 get_ast_vec_type(::Type{T}, n::Int) where T = get_ast_vec_type(T, Val(n))
 precomp_union_types(Union{map(t -> t[2], VEC_EL_TYPES)...}, get_ast_vec_type, (missing, Int), true)
@@ -58,7 +55,7 @@ for (suffix, el_type) in VEC_EL_TYPES
     for n in 2:4
         sym = Symbol("ASTVec", n, suffix)
         @eval @exported struct $sym <: $abs_sym end
-        @eval elcount(::Type{$sym}) = $n
+        @eval Base.length(::Type{$sym}) = $n
         @eval get_ast_vec_type(::Type{$el_type}, ::Val{$n}) = $sym
 
         push!(vec_types, getfield(@__MODULE__, sym))
@@ -93,8 +90,21 @@ for (suffix, el_type) in MAT_EL_TYPES
     end
 end
 
-@exported struct ASTList{T} <: ASTType end
-Base.eltype(::Type{<:ASTList{T}}) where T = T
+@exported struct ASTList{N, T <: ASTType} <: ASTType end
+
+to_tast(::Type{<:SVector{N, T}}) where {N, T} = ASTList{N, T <: ASTType ? T : to_tast(T)}
+to_tast(::Type{<:SVector{T}}) where {T} = ASTList{-1, T <: ASTType ? T : to_tast(T)}
+
+function to_ast(::Type{ASTList{N, T}}) where {N, T <: ASTType}
+    @debug_assert N isa Integer
+
+    ast_el_type = T <: ASTType ? to_ast(T) : T
+
+    return N > 0 ? SVector{N, ast_el_type} : SVector{ast_el_type}
+end
+
+Base.eltype(::Type{<:ASTList{N, T}}) where {N, T} = T
+Base.length(::Type{<:ASTList{N, T}}) where {N, T} = N
 Base.show(io::IO, ::Type{<:ASTList{T}}) where T = print(io, "ASTList{$T}")
 
 export ASTValueType
