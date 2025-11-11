@@ -107,6 +107,24 @@ precomp_subtypes(GLSLASTNode, GLSLSwizzle, (missing, String))
     index::GLSLASTNode
 end
 
+@exported struct GLSLArrayLiteral <: GLSLASTNode
+    length::Int
+    el_type::DataType
+    values::Vector{GLSLLiteral}
+
+    function GLSLArrayLiteral(values::Vector{<:GLSLASTNode})
+        !all(el -> el isa GLSLLiteral, values) && error("Cannot construct GLSL array literal from non-literal GLSL AST nodes")
+        
+        n = length(values)
+        n == 0 && error("Trying to construct GLSL array literal with length zero:\n$(join(values, ","))")
+
+        t = values[1].type
+        any(el -> el.type != t, values) && error("Trying to construct GLSL array literal with differing element types:\n$(join(values, ","))")
+
+        new(n, t, values)
+    end
+end
+
 @exported struct GLSLAssignment <: GLSLASTNode
     lhs::Union{GLSLSymbol,GLSLSwizzle,GLSLArrayIndexer}
     rhs::GLSLASTNode

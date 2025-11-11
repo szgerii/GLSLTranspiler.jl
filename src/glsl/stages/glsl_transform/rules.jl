@@ -15,6 +15,7 @@ struct IndexerTag <: ASTConstructTag end
 struct LogicalOperatorTag <: ASTConstructTag end
 struct BreakTag <: ASTConstructTag end
 struct ContinueTag <: ASTConstructTag end
+struct ArrayLiteralTag <: ASTConstructTag end
 
 @def_pre_rules(
     ASTConstructTag,
@@ -55,7 +56,8 @@ struct ContinueTag <: ASTConstructTag end
         expr = node.original[]
 
         expr isa Expr && expr.head == :call && expr.args[1] in [:(!), :(⊻)]
-    end)
+    end),
+    (ArrayLiteralTag, node -> node.type <: ASTListLiteral)
 )
 
 Tagger.get_eq_projection(::Type{ASTConstructTag}, ::Type{TypedASTNode}) =

@@ -2,7 +2,15 @@ export to_glsl_type
 
 @exported abstract type GLSLType end
 
-to_glsl_type(::Type{T}) where T = error("Julia type '$T' cannot be converted to a GLSL type")
+function to_glsl_type(::Type{T}) where T
+    tast_t = to_tast(T)
+    
+    if !isnothing(tast_t)
+        return to_glsl_type(tast_t)
+    else
+        error("Julia type '$T' cannot be converted to a GLSL type")
+    end
+end
 
 @exported struct GLSLBool <: GLSLType end
 @exported struct GLSLInt <: GLSLType end

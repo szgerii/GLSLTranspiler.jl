@@ -2,8 +2,8 @@ run_glsl_code_gen(mod::Module, ::GLSLPipelineContext, glsl_ast::GLSLASTNode) =
     error("The GLSL AST must have a GLSLShader or GLSLFunction node as its root")
 
 # Method for generating the main shader function
-function run_glsl_code_gen(mod::Module, pipeline_ctx::GLSLPipelineContext, glsl_ast::GLSLShader)::String
-    ctx = GLSLCodeGenContext(mod)
+function run_glsl_code_gen(mod::Module, pipeline_ctx::GLSLPipelineContext, glsl_ast::GLSLShader, usyms::Vector{TypedUniqueSymbol})::String
+    ctx = GLSLCodeGenContext(mod, usyms)
     cfg = Transpiler.transpiler_config
 
     code = "#version " * string(cfg.gl_version) * (cfg.gl_version_core ? " core" : "") * "\n\n"
@@ -33,8 +33,8 @@ function run_glsl_code_gen(mod::Module, pipeline_ctx::GLSLPipelineContext, glsl_
 end
 
 # Method for generating helper shader functions (fn type info is also taken into account)
-function run_glsl_code_gen(mod::Module, ::GLSLPipelineContext, glsl_ast::GLSLFunction)::String
-    ctx = GLSLCodeGenContext(mod)
+function run_glsl_code_gen(mod::Module, ::GLSLPipelineContext, glsl_ast::GLSLFunction, usyms::Vector{TypedUniqueSymbol})::String
+    ctx = GLSLCodeGenContext(mod, usyms)
 
     code = type_to_str(glsl_ast.ret_type) * " " * glsl_cg_traverse(glsl_ast.name, ctx) * "("
 

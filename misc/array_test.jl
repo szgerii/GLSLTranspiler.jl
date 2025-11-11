@@ -7,9 +7,13 @@ Transpiler.transpiler_config.gl_rewrite_to_glm = false
 
 code = @glsl(
     function test_array(
-        @uniform(arr::SVector{10,Float32}),
-        @uniform(arr2::SVector{Float32})
     )
+        @constant global cf_arr = [1.0,2.0,3.0,4.0]
+        @constant global ci_us_arr::SVector{Int} = [1,2,3]
+        @constant global ci_s_arr::SVector{3,Int} = [1,2,3]
+        arr = [1,2,3]
+        i = length(arr)
+        j = length(cf_arr)
     end,
     #Transpiler.Verbose
 )

@@ -115,7 +115,7 @@ function run_glsl_transform(
         pushfirst!(output.interface_declarations, GLSLLocalSizeDeclaration(pipeline_ctx.local_size))
     end
 
-    (output)
+    (output, usyms)
 end
 
 glsl_ast_string(misc::Any, indent=0) = repeat(' ', indent) * string(misc) * "\n"

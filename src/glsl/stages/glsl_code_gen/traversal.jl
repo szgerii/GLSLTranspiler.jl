@@ -106,8 +106,17 @@ end
 glsl_cg_traverse(node::GLSLAssignment, ctx::GLSLCodeGenContext) = "$(glsl_cg_traverse(node.lhs, ctx)) = $(glsl_cg_traverse(node.rhs, ctx))"
 
 function glsl_cg_traverse(node::GLSLCall, ctx::GLSLCodeGenContext)::String
-    if node.fn_name isa GLSLSymbol && node.fn_name.sym == :discard
-        return "discard"
+    if node.fn_name isa GLSLSymbol
+        if node.fn_name.sym == :discard
+            return "discard"
+        elseif node.fn_name.sym == :length && length(node.args) == 1 && node.args[1] isa GLSLSymbol
+            usym_idx = findfirst(usym -> usym.id == node.args[1].sym, ctx.usyms)
+            usym = !isnothing(usym_idx) ? ctx.usyms[usym_idx] : nothing
+
+            if !isnothing(usym) && to_glsl_type(usym.type) <: GLSLArray
+                return string(usym.id) * ".length()"
+            end
+        end
     end
 
     code = ""
@@ -238,4 +247,13 @@ function glsl_cg_traverse(node::GLSLLocalSizeDeclaration, ::GLSLCodeGenContext)
     "layout(local_size_x = " * string(node.dims[1]) *
     ", local_size_y = " * string(node.dims[2]) *
     ", local_size_z = " * string(node.dims[3]) * ") in"
+end
+
+function glsl_cg_traverse(node::GLSLArrayLiteral, ctx::GLSLCodeGenContext)
+    el_strs = String[]
+    for el in node.values
+        push!(el_strs, glsl_cg_traverse(el, ctx))
+    end
+
+    type_to_str(node.el_type) * "[" * string(node.length) * "](" * join(el_strs, ",") * ")"
 end

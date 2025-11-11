@@ -31,6 +31,10 @@ function usym_list_string(usyms::Vector{UniqueSymbol})::String
     output = ""
 
     for usym in usyms
+        if startswith(string(usym.original_sym), "gl_")
+            continue
+        end
+
         output *= "$(usym.id)\n" *
                   "  - Original Symbol: $(usym.original_sym)\n" *
                   "  - Defining Scope: #$(id_chain_string(usym.def_scope_id))\n"
@@ -47,6 +51,10 @@ function usym_mappings_string(mappings::ScopedUSymMapping)::String
         output *= "$padding[Scope #$(id_chain_string(scope_id))]:\n"
 
         for (sym, usym_id) in mappings[scope_id]
+            if startswith(string(sym), "gl_")
+                continue
+            end
+
             output *= "$padding  $sym => $usym_id\n"
         end
     end

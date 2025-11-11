@@ -1,5 +1,33 @@
 const ConstantType = Union{Int32,Int64,Float32,Float64,UInt32,Bool,JuliaGLM.VecNT,JuliaGLM.MatTNxM}
 
+function type_check_const_init(const_val, const_t::Type, ctx::PipelineContext)
+    if const_val isa const_t
+        return true
+    end
+
+    if const_t <: SVector && const_val isa Vector
+        if isconcretetype(const_t) && 0 != length(const_t) != length(const_val)
+            return false
+        end
+
+        t_el_t = eltype(const_t)
+        v_el_t = eltype(const_val)
+        if t_el_t != v_el_t
+            if is_i32_i64_swap_allowed(ctx) && all(el -> el <: Union{Int32,Int64}, [t_el_t, v_el_t])
+                return true
+            end
+
+            if Transpiler.transpiler_config.literals_as_f32 && all(el -> el <: Union{Float32,Float64}, [t_el_t, v_el_t])
+                return true
+            end
+        end
+
+        return true
+    end
+
+    return false
+end
+
 function glsl_preprocess(node::Expr, mod::Module, ctx::PipelineContext, decl_type::Union{Symbol,Nothing}=nothing)
     # print "pretty" error message for out of order declarations
     # e.g. local @constant x::Int instead of @constant local x::Int
@@ -73,7 +101,7 @@ function glsl_preprocess(node::Expr, mod::Module, ctx::PipelineContext, decl_typ
                         const_val_candidate = mod.eval(expr)
                     catch ex
                         if haskey(ENV, "TRANSPILER_DEBUG")
-                            println("Exception caught during transpile-evaluation for $(node.args[1]):")
+                            println("Exception caught during transpile-time evaluation for $(node.args[1]):")
                             println(ex)
                             println("The above error was printed because TRANSPILER_DEBUG is enabled")
                         end
@@ -89,12 +117,12 @@ function glsl_preprocess(node::Expr, mod::Module, ctx::PipelineContext, decl_typ
                 )
             end
 
-            f32_rewrite = 
-                    Transpiler.transpiler_config.literals_as_f32 &&
-                    const_val_candidate isa Float64
-            
-            if f32_rewrite
-                const_val_candidate = convert(Float32, const_val_candidate)
+            if Transpiler.transpiler_config.literals_as_f32
+                if const_val_candidate isa Float64
+                    const_val_candidate = convert(Float32, const_val_candidate)
+                elseif const_val_candidate isa Union{Vector,SVector} && eltype(const_val_candidate) <: Union{Float32,Float64}
+                    const_val_candidate = convert.(Float32, const_val_candidate)
+                end
             end
 
             if ismissing(const_val_candidate)
@@ -112,7 +140,7 @@ function glsl_preprocess(node::Expr, mod::Module, ctx::PipelineContext, decl_typ
                 if i32_rewrite
                     node.args[2] = Int32
                     const_val_candidate = convert(Int32, const_val_candidate)
-                elseif !(const_val_candidate isa node.args[2])
+                elseif !type_check_const_init(const_val_candidate, node.args[2], ctx)
                     ast_error(
                         node,
                         "Type of @constant initial value does not match the declared type ",
@@ -132,12 +160,19 @@ function glsl_preprocess(node::Expr, mod::Module, ctx::PipelineContext, decl_typ
         @debug_assert final_scope isa Symbol
 
         if final_scope == :global
-            glsl_type = to_glsl_type(node.args[2])
+            glsl_type = !(node.args[2] <: Vector) ? to_glsl_type(node.args[2]) : nothing
             init_val = nothing
 
-            if !isnothing(node.args[5]) && node.args[5] isa node.args[2]
-                init_val = GLSLLiteral(node.args[5], glsl_type)
+            if !isnothing(node.args[5]) && type_check_const_init(node.args[5], node.args[2], ctx)
+                if node.args[5] isa Vector
+                    init_val = GLSLArrayLiteral([GLSLLiteral(el) for el in node.args[5]])
+                    glsl_type = GLSLArray{init_val.length, init_val.el_type}
+                else
+                    init_val = GLSLLiteral(node.args[5], glsl_type)
+                end
             end
+
+            @debug_assert !isnothing(glsl_type)
 
             glsl_decl = GLSLDeclaration(GLSLSymbol(node.args[1].value), glsl_type, node.args[4], init_val)
 

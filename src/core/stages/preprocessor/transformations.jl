@@ -106,4 +106,8 @@ function preprocess_transform(::Type{PrefixNegTag}, node::Expr, _::Module)::Vect
     [Expr(:call, :*, -1, node)]
 end
 
+# [1, 2, 3.4] => [1.0, 2.0, 3.4]
+# this wrapping/unwrapping trick automatically does promotion for the element types if possible
+preprocess_transform(::Type{VectLiteralTag}, node::Expr, ::Module) = [Expr(:vect, [node.args...]...)]
+
 precomp_subtypes(PreprocessorTag, preprocess_transform, (missing, Expr, Module))

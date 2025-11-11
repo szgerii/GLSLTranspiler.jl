@@ -105,7 +105,12 @@ end
 
 Base.eltype(::Type{<:ASTList{N, T}}) where {N, T} = T
 Base.length(::Type{<:ASTList{N, T}}) where {N, T} = N
-Base.show(io::IO, ::Type{<:ASTList{T}}) where T = print(io, "ASTList{$T}")
+Base.show(io::IO, ::Type{<:ASTList{N, T}}) where {N, T} = print(io, "ASTList{$N, $T}")
+
+@exported struct ASTListLiteral{N, T <: ASTType} <: ASTType end
+
+Base.length(::Type{<:ASTListLiteral{N, T}}) where {N, T} = N
+Base.eltype(::Type{<:ASTListLiteral{N, T}}) where {N, T} = T
 
 export ASTValueType
 

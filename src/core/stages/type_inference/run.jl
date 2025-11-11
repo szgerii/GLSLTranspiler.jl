@@ -150,6 +150,10 @@ function typed_usym_list_string(usyms::Vector{TypedUniqueSymbol})::String
     output = ""
 
     for usym in usyms
+        if startswith(string(usym.original_sym), "gl_")
+            continue
+        end
+
         output *= "$(usym.id)\n" *
                   "  - Type: $(usym.type)\n" *
                   "  - Original Symbol: $(usym.original_sym)\n" *

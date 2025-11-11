@@ -400,4 +400,22 @@ function glsl_transform!(state::GLSLTransformState, ::Type{LogicalOperatorTag}, 
     end
 end
 
+function glsl_transform!(state::GLSLTransformState, ::Type{ArrayLiteralTag}, ctx::GTContext)
+    transform_children!(state, ctx)
+    
+    t = eltype(state.typed_node.type) |> to_glsl_type
+    arr_lit = state.children
+
+    @debug_assert all(el -> el.glsl_node isa GLSLLiteral, arr_lit)
+
+    if !all(el -> el.glsl_node.type == t, arr_lit)
+        ast_error(state.original[],
+            "Found array literal where the core-inferred element type's GLSL type projection doesn't match one of the element's GLSL type:\n",
+            join(state.original[].args, ",")
+        )
+    end
+
+    state.glsl_node = GLSLArrayLiteral([glsl_children(state)...])
+end
+
 precomp_subtypes(ASTConstructTag, glsl_transform!, (GLSLTransformState, missing, GTContext))

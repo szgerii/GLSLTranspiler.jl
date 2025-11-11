@@ -3,6 +3,7 @@ module GLSLCodeGen
 import ...Transpiler
 using ..CoreTypes
 using ..Utils
+using ..TypeInference
 using ..GLSL
 using ..GLSL.GLSLTransform
 

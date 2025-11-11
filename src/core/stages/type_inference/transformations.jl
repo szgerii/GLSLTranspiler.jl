@@ -10,26 +10,54 @@ function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTAssignmentTag}, ct
 
     lhs = node.children[1]
     rhs = node.children[2]
-
+    
     vname = string(lhs.original[])
-
+    
     if is_ast_void(rhs.type)
         ast_error(node.original[],
             "Couldn't determine right side type of assignment expression. This might be the result of using an unsupported Julia feature.")
     end
 
+    target_type = rhs.type
+    
     if lhs.type == ASTVoidSym
         # a new symbol is being defined
         @debug_assert isnothing(find_type(lhs.original[], ctx))
 
-        add_type!(ctx, lhs.original[], rhs.type)
-    elseif (lhs.type != rhs.type) && !(is_i32_i64_swap_allowed(ctx.pipeline_ctx) && all(n -> n.type <: Union{ASTInt32, ASTInt64}, [lhs, rhs]))
-        # TODO: allow this through typed usyms
-        ast_error(node.original[],
-            "Reassignment to new type: Trying to bind variable '$vname' of type '$(lhs.type)' to a value of type '$(rhs.type)'.")
+        if rhs.type <: ASTListLiteral
+            n = length(rhs.type)
+            t = eltype(rhs.type)
+
+            target_type = ASTList{n, t}
+        end
+
+        add_type!(ctx, lhs.original[], target_type)
+    elseif (lhs.type != rhs.type)
+        if lhs.type <: ASTList && rhs.type <: ASTListLiteral
+            arr_n = length(lhs.type)
+            arr_t = eltype(lhs.type)
+            lit_n = length(rhs.type)
+            lit_t = eltype(rhs.type)
+
+            if (0 < arr_n != lit_n)
+                ast_error(node.original[],
+                    "List literal assignment dimension mismatch: trying to assign list literal of length $lit_n to list of length $arr_n")
+            end
+
+            if arr_t != lit_t
+                ast_error(node.original[],
+                    "List literal assignment type mismatch: trying to assign list literal with element type $lit_t to list with element type $arr_t")
+            end
+
+            target_type = lhs.type
+        elseif !(is_i32_i64_swap_allowed(ctx.pipeline_ctx) && all(n -> n.type <: Union{ASTInt32, ASTInt64}, [lhs, rhs]))
+            # TODO: allow this through typed usyms
+            ast_error(node.original[],
+                "Reassignment to new type: Trying to bind variable '$vname' of type '$(lhs.type)' to a value of type '$(rhs.type)'.")
+        end
     end
 
-    node.type = rhs.type
+    node.type = target_type
 end
 
 function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTModuleResolveTag}, ctx::TIContext)
@@ -51,23 +79,27 @@ function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTCallTag}, ctx::TIC
     sym_ref = fsym.original[] isa Symbol
     is_helper = sym_ref && has_helper(ctx.pipeline_ctx, fsym.original[])
 
-    if sym_ref && fsym.original[] == :(/) && length(node.children[2:end]) >= 2
-        arg_type = node.children[2].type
+    if sym_ref
+        if fsym.original[] == :(/) && length(args) >= 2
+            arg_type = args[1].type
 
-        if all(T -> arg_type == T, node.children[3:end])
-            node.type = arg_type
+            if all(T -> arg_type == T, args[2:end])
+                node.type = arg_type
+                return
+            end
+        end
+
+        if fsym.original[] == :length && length(args) == 1 && args[1].type <: Union{ASTList,ASTListLiteral}
+            node.type = ASTInt32
             return
         end
-    end
 
-    if sym_ref
         arg_types = map(arg -> arg.type, args)
         ret = builtin_fn_ret_type(ctx.pipeline_ctx, Val(fsym.original[]), arg_types...)
         if !ismissing(ret)
             @debug_assert ret <: ASTType "Invalid return type for environment function $(fsym.original[]) called with args $(arg_types)"
 
             node.type = ret
-
             return
         end
     end
@@ -363,6 +395,35 @@ function handle_arr_index!(node::TypedASTNode)
     end
 
     node.type = eltype(arr_node.type)
+end
+
+function infer_typed_ast_node!(node::TypedASTNode, ::Type{TASTVectLiteralTag}, ctx::TIContext)
+    # eltype cannot be easily inferred for empty array literals
+    if length(node.children) == 0
+        ast_error(node.original[], "Empty literals are not supported")
+    end
+
+    arr_lit = node.original[].args
+
+    arr_n = length(arr_lit)
+    arr_t = typeof(arr_lit[1])
+
+    if any(el -> typeof(el) != arr_t, arr_lit)
+        ast_error(node.original[],
+            "Invalid array literal, elements are of different types in:\n" *
+            "[" * join(arr_lit, ",") * "]"
+        )
+    end
+
+    arr_t = to_tast(arr_t)
+
+    if isnothing(arr_t)
+        ast_error(node.original[],
+            "Invalid element type '$arr_t' found in array literal: $(join(arr_lit, ","))."
+        )
+    end
+
+    node.type = ASTListLiteral{arr_n, arr_t}
 end
 
 precomp_subtypes(TASTNodeTag, infer_typed_ast_node!, (TypedASTNode, missing, TIContext))

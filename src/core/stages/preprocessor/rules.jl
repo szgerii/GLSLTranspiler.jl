@@ -10,11 +10,13 @@ struct MultipleTargetDeclTag <: PreprocessorTag end
 struct BroadcastOperatorTag <: PreprocessorTag end
 struct BroadcastCallTag <: PreprocessorTag end
 struct PrefixNegTag <: PreprocessorTag end
+struct VectLiteralTag <: PreprocessorTag end
 
 @def_eqs(
     PreprocessorTag,
     (StringCallTag, :string),
-    (ComparisonChainTag, :comparison)
+    (ComparisonChainTag, :comparison),
+    (VectLiteralTag, :vect)
 )
 
 @def_pre_rules(

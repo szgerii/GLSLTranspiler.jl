@@ -9,6 +9,7 @@ struct TASTLogicalChainTag <: TASTNodeTag end
 struct TASTRefTag <: TASTNodeTag end
 struct TASTModuleResolveTag <: TASTNodeTag end
 struct TASTFunctionDefTag <: TASTNodeTag end
+struct TASTVectLiteralTag <: TASTNodeTag end
 struct TASTUnsupportedTag <: TASTNodeTag end
 
 @def_pre_rules(
@@ -29,5 +30,6 @@ struct TASTUnsupportedTag <: TASTNodeTag end
     (TASTRefTag, :ref),
     (TASTModuleResolveTag, :(.)),
     (TASTFunctionDefTag, :function),
+    (TASTVectLiteralTag, :vect),
     (TASTUnsupportedTag, :try)
 )
