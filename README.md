@@ -1,12 +1,12 @@
-# Transpiler.jl
+# GLSLTranspiler.jl
 
-This project is a general shader transpiler for the Julia language. Currently it only supports Julia -> GLSL transpilation, but a pipeline for languages like HLSL can be easily created in the future.
+This project is a general shader transpiler for the Julia language. Currently it only supports Julia -> GLSL transpilation (thus the current GLSLTranspiler.jl name), but a pipeline for languages like HLSL can be added in the future.
 
 It was created as part of my 2025 summer internship at ELTE.
 
 ## Usage
 
-The transpiler exists as a completely independent package that can be injected into any project. Its main API consists mostly of the run_pipeline found in the base Transpiler module. It can be used in the following way:
+The transpiler exists as a completely independent package that can be injected into any project. Its main API consists mostly of the run_pipeline function found in the base Transpiler module, which can be used in the following way:
 
 ```julia
 using Transpiler
@@ -36,7 +36,7 @@ code = @transpile(
 )
 ```
 
-The run pipeline will output three things as a Tuple:
+The run_pipeline will output three things as a Tuple:
 1. **Expr** <br>
     The transformed function definition that can be defined in Julia (stripped from macros and potentially transformed to match the semantics of the generated code better)
 1. **Any** <br>
