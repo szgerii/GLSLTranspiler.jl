@@ -4,6 +4,11 @@ This project is a general shader transpiler for the Julia language. Currently it
 
 It was created as part of my 2025 summer internship at ELTE.
 
+## Current State
+
+An alternative and improved version of this transpiler is currently being developed as my thesis project. The main difference is that the core transpilation logic is being implemented in C++, in a performance-focused manner. A Julia-side interface will be available through a wrapper Pkg that interacts with the C++ transpiler library through `ccall`-s. The new implementation is also more extensible, using a general AST representation between the source and target language. This allows easier addition of new frontends and backends later on, solving N-to-M problems better than the current pipeline-based approach.
+Main reasoning for this move are precompilation and TTFX issues (see [Known Issues](#known-issues)).
+
 ## Usage
 
 The transpiler exists as a completely independent package that can be injected into any project. Its main API consists mostly of the run_pipeline function found in the base Transpiler module, which can be used in the following way:
