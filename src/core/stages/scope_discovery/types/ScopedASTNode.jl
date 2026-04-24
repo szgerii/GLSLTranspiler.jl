@@ -21,6 +21,6 @@ function CoreTypes.tree_node_string(node::ScopedASTNode)
 
     prefix *
     (node.has_own_scope ?
-     string("[", string(node.scope[]), "]\n", Transpiler.tree_node_string(get_original(node)[])) :
-     Transpiler.tree_node_string(get_original(node)[]))
+     string("[", string(node.scope[]), "]\n", GLSLTranspiler.tree_node_string(get_original(node)[])) :
+     GLSLTranspiler.tree_node_string(get_original(node)[]))
 end

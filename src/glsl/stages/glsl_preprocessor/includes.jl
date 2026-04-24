@@ -1,6 +1,6 @@
 module GLSLPreprocessor
 
-using ...Transpiler
+using ...GLSLTranspiler
 using ...CoreTypes
 using ...Utils
 using ...SymbolResolution

@@ -4,14 +4,14 @@ macro skip(f...)
     :()
 end
 
-using Transpiler
-using Transpiler.GLSL
+using GLSLTranspiler
+using GLSLTranspiler.GLSL
 using JuliaGLM
 
 some_global = 2
 some_other_global = 3
 
-@skip @transpile Transpiler.GLSL.GLSLPipeline function test_fn(a::Int, b::Int)
+@skip @transpile GLSLTranspiler.GLSL.GLSLPipeline function test_fn(a::Int, b::Int)
     # global 1
     some_global = 2
     # local 1.1 because of assignment
@@ -67,7 +67,7 @@ i = 0
 j = 1
 
 @skip @transpile(
-    Transpiler.GLSL.GLSLPipeline,
+    GLSLTranspiler.GLSL.GLSLPipeline,
     function preprocessor()
         global i, j
         i += 2
@@ -80,7 +80,7 @@ j = 1
 )
 
 @skip @transpile(
-    Transpiler.GLSL.GLSLPipeline,
+    GLSLTranspiler.GLSL.GLSLPipeline,
     function scope()
         i = 1
 
@@ -111,7 +111,7 @@ j = 1
 )
 
 @skip @transpile(
-    Transpiler.GLSL.GLSLPipeline,
+    GLSLTranspiler.GLSL.GLSLPipeline,
     function symbols()
         i = 1
         j = 3
@@ -126,7 +126,7 @@ j = 1
 )
 
 @skip @transpile(
-    Transpiler.GLSL.GLSLPipeline,
+    GLSLTranspiler.GLSL.GLSLPipeline,
     function glsl_preprocessor(
         @in(normal::Vec3),
         @out(frag_col::Vec4),
@@ -138,7 +138,7 @@ j = 1
 )
 
 @skip @transpile(
-    Transpiler.GLSL.GLSLPipeline,
+    GLSLTranspiler.GLSL.GLSLPipeline,
     function green(@out(out_col::Vec4))
         out_col = Vec4(0, 1, 0, 1)
     end
@@ -146,7 +146,7 @@ j = 1
 
 
 @skip @transpile(
-    Transpiler.GLSL.GLSLPipeline,
+    GLSLTranspiler.GLSL.GLSLPipeline,
     function mouse_follow(
         @out(color::Vec4),
         @uniform(time::Float32),
@@ -164,17 +164,17 @@ j = 1
             discard()
         end
     end,
-    Transpiler.Verbose
+    GLSLTranspiler.Verbose
 )
 
 
 
 #println(code)
 
-#Transpiler.transpiler_config.literals_as_f32 = false
+#GLSLTranspiler.transpiler_config.literals_as_f32 = false
 
 @skip code = @transpile(
-    Transpiler.GLSL.GLSLPipeline,
+    GLSLTranspiler.GLSL.GLSLPipeline,
     function test_shader(@in(a::Float32), @out(col::Vec4))
         i = 1
         m2 = mat2(1)
@@ -184,12 +184,12 @@ j = 1
         v3 = m43[:, i]
         m43_2 = m43[:, :]
     end,
-    #Transpiler.Verbose
+    #GLSLTranspiler.Verbose
 )
 
 
 @skip code = @transpile(
-    Transpiler.GLSL.GLSLPipeline,
+    GLSLTranspiler.GLSL.GLSLPipeline,
     function fn_test(@out(frag_col::Vec4))
         function helper(a::Int)
             a
@@ -202,11 +202,11 @@ j = 1
 
         frag_col = vec4(1)
     end,
-    #Transpiler.Verbose
+    #GLSLTranspiler.Verbose
 )
 
 @skip code = @transpile(
-    Transpiler.GLSL.GLSLPipeline,
+    GLSLTranspiler.GLSL.GLSLPipeline,
     function range_test()
         a = 3
 
@@ -224,12 +224,12 @@ j = 1
         #end
         x + 2
     end,
-    #Transpiler.Verbose
+    #GLSLTranspiler.Verbose
 )
 
 
-@skip Transpiler.Preprocessor.PreprocessorStage.run(
-    @__MODULE__(), Transpiler.CoreTypes.init_pipeline_ctx(Transpiler.GLSL.GLSLPipelineContext),
+@skip GLSLTranspiler.Preprocessor.PreprocessorStage.run(
+    @__MODULE__(), GLSLTranspiler.CoreTypes.init_pipeline_ctx(GLSLTranspiler.GLSL.GLSLPipelineContext),
     :(function preprocessor_test()
         x, y, z = 1, 2, 3
 
@@ -245,7 +245,7 @@ some_global = 1
 some_other_global = 1
 
 code = @transpile(
-    Transpiler.GLSL.GLSLPipeline, function type_example()
+    GLSLTranspiler.GLSL.GLSLPipeline, function type_example()
         x = 1.0
         y = 2.0
 
@@ -254,7 +254,7 @@ code = @transpile(
         mat = mat2x3(0)
         t_mat = mat'
     end,
-    Transpiler.Verbose
+    GLSLTranspiler.Verbose
 )
 
 println(code)

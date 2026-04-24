@@ -1,4 +1,4 @@
-module Transpiler
+module GLSLTranspiler
 
 # Common Types
 include("core/types/includes.jl")
@@ -47,7 +47,7 @@ using .GLSL
 @compile_workload begin
     @transpile GLSL.GLSLPipeline function shadertoy_demo(
         GLSL.@out(a::Vec4),
-        @in(@layout std430 (binding=0) (location=0) b::Float32),
+        @in(@layout std430 (binding = 0) (location = 0) b::Float32),
         @uniform(c::IVec2)
     )
         _precomp_global
@@ -91,15 +91,15 @@ using .GLSL
 
     @interface TRANSPILER_PRECOMP_SSBO (JG_TESS_pos_arr::SVector{Vec3},)
     add_qualifiers!(:TRANSPILER_PRECOMP_SSBO,
-            LayoutQualifier([
-                LayoutQualifierOption(:std430),
-                LayoutQualifierOption(:binding, 0)
-            ]),
-            RestrictQualifier(),
-            WriteOnlyQualifier()
-        )
+        LayoutQualifier([
+            LayoutQualifierOption(:std430),
+            LayoutQualifierOption(:binding, 0)
+        ]),
+        RestrictQualifier(),
+        WriteOnlyQualifier()
+    )
 
-    @transpile GLSL.GLSLPipeline function callback_fn( @uniform(JG_TESS_t_idx::UVec2), @uniform(JG_TESS_t_range::Vec2), @uniform(center::Vec3T{Float32}), @local_size(256), @uniform(JG_TESS_n::UInt32), @buffer(TRANSPILER_PRECOMP_SSBO))
+    @transpile GLSL.GLSLPipeline function callback_fn(@uniform(JG_TESS_t_idx::UVec2), @uniform(JG_TESS_t_range::Vec2), @uniform(center::Vec3T{Float32}), @local_size(256), @uniform(JG_TESS_n::UInt32), @buffer(TRANSPILER_PRECOMP_SSBO))
         begin
             JG_TESS_ID = gl_GlobalInvocationID[:x]
             if JG_TESS_ID >= JG_TESS_n
@@ -120,7 +120,7 @@ using .GLSL
         x = r * cos(8phi)
         y = r * sin(8phi)
         z = -(sin(9phi))
-        JG_TESS_pos_arr[JG_TESS_ID + 1] = center[:xyz] + vec3(x, y, z)
+        JG_TESS_pos_arr[JG_TESS_ID+1] = center[:xyz] + vec3(x, y, z)
     end
 end
 

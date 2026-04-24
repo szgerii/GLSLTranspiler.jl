@@ -1,6 +1,6 @@
 module Preprocessor
 
-import ..Transpiler
+import ..GLSLTranspiler
 using ..CoreTypes
 using ..Utils
 

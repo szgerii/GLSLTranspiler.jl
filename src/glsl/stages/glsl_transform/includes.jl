@@ -1,6 +1,6 @@
 module GLSLTransform
 
-using ...Transpiler
+using ...GLSLTranspiler
 using ...CoreTypes
 using ...Utils
 using ...ScopeDiscovery

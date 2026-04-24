@@ -1,6 +1,6 @@
 module ScopeDiscovery
 
-import ..Transpiler
+import ..GLSLTranspiler
 using ..CoreTypes
 using ..Utils
 using Tagger

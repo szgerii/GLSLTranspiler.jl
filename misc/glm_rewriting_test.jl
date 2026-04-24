@@ -1,5 +1,5 @@
-using Transpiler
-using Transpiler.GLSL
+using GLSLTranspiler
+using GLSLTranspiler.GLSL
 
 shader_fn = :(
     function test()
@@ -7,10 +7,10 @@ shader_fn = :(
     end
 )
 
-logging = Transpiler.Silent
+logging = GLSLTranspiler.Silent
 
-(def, code) = Transpiler.run_pipeline(
-    Transpiler.GLSL.GLSLPipeline,
+(def, code) = GLSLTranspiler.run_pipeline(
+    GLSLTranspiler.GLSL.GLSLPipeline,
     shader_fn,
     @__MODULE__();
     log_level=logging
@@ -24,8 +24,8 @@ println(code)
 
 import JuliaGLM
 
-(def, code) = Transpiler.run_pipeline(
-    Transpiler.GLSL.GLSLPipeline,
+(def, code) = GLSLTranspiler.run_pipeline(
+    GLSLTranspiler.GLSL.GLSLPipeline,
     shader_fn,
     @__MODULE__();
     log_level=logging

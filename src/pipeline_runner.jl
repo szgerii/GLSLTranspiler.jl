@@ -24,7 +24,7 @@ In the end, it will return the generated code String.
 # Examples
 ```jldoctest
 julia> code = @transpile(
-           Transpiler.GLSL.GLSLPipeline,
+           GLSLTranspiler.GLSL.GLSLPipeline,
            function my_shader_fn(#= ... =#)
                #= ... =#
            end
@@ -40,7 +40,7 @@ macro transpile(pipeline, f::Expr, log_level=Silent)
     helpers = gensym()
 
     quote
-        ($def, $output, $helpers) = Transpiler.run_pipeline($(esc(pipeline)), $(QuoteNode(f)), $__module__; log_level=$(esc(log_level)))
+        ($def, $output, $helpers) = GLSLTranspiler.run_pipeline($(esc(pipeline)), $(QuoteNode(f)), $__module__; log_level=$(esc(log_level)))
 
         $__module__.eval($def)
 

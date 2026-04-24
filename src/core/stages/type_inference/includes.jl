@@ -1,6 +1,6 @@
 module TypeInference
 
-import ..Transpiler
+import ..GLSLTranspiler
 using ..CoreTypes
 using ..Utils
 using ..ScopeDiscovery

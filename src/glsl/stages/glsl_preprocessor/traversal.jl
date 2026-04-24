@@ -17,7 +17,7 @@ function type_check_const_init(const_val, const_t::Type, ctx::PipelineContext)
                 return true
             end
 
-            if Transpiler.transpiler_config.literals_as_f32 && all(el -> el <: Union{Float32,Float64}, [t_el_t, v_el_t])
+            if GLSLTranspiler.transpiler_config.literals_as_f32 && all(el -> el <: Union{Float32,Float64}, [t_el_t, v_el_t])
                 return true
             end
         end
@@ -39,7 +39,7 @@ function glsl_preprocess(node::Expr, mod::Module, ctx::PipelineContext, decl_typ
             "Make sure qualifier macros precede the local/global keywords."
         )
     end
-    
+
     arg_decls = node.head in [:global, :local] ? node.head : decl_type
 
     if node.head == :decl && !ismissing(node.args[3])
@@ -50,7 +50,7 @@ function glsl_preprocess(node::Expr, mod::Module, ctx::PipelineContext, decl_typ
         node.args[i] = glsl_preprocess(arg, mod, ctx, arg_decls)
     end
 
-    if Transpiler.transpiler_config.gl_rewrite_to_glm && node.head == :call && node.args[1] isa Symbol
+    if GLSLTranspiler.transpiler_config.gl_rewrite_to_glm && node.head == :call && node.args[1] isa Symbol
         # force fn calls that can point to JuliaGLM functions to explicitly refer to those
         fsym = node.args[1]
 
@@ -82,7 +82,7 @@ function glsl_preprocess(node::Expr, mod::Module, ctx::PipelineContext, decl_typ
             if scope != :global
                 ast_error(node, "Trying to declare const in non-global context")
             end
-            
+
             if isnothing(node.args[5])
                 ast_error(node, "Trying to declare const without an initial value")
             end
@@ -93,7 +93,7 @@ function glsl_preprocess(node::Expr, mod::Module, ctx::PipelineContext, decl_typ
                 # fast track literals
                 const_val_candidate = node.args[5]
             elseif node.args[5] isa ASTNode
-                if Transpiler.transpiler_config.gl_const_eval
+                if GLSLTranspiler.transpiler_config.gl_const_eval
                     expr = node.args[5] isa QuoteNode ? node.args[5].value : node.args[5]
                     # try to get a transpile-time known value for the constant
                     # by evaluating it in the calling module
@@ -117,7 +117,7 @@ function glsl_preprocess(node::Expr, mod::Module, ctx::PipelineContext, decl_typ
                 )
             end
 
-            if Transpiler.transpiler_config.literals_as_f32
+            if GLSLTranspiler.transpiler_config.literals_as_f32
                 if const_val_candidate isa Float64
                     const_val_candidate = convert(Float32, const_val_candidate)
                 elseif const_val_candidate isa Union{Vector,SVector} && eltype(const_val_candidate) <: Union{Float32,Float64}
@@ -151,7 +151,7 @@ function glsl_preprocess(node::Expr, mod::Module, ctx::PipelineContext, decl_typ
             else
                 node.args[2] = typeof(const_val_candidate)
             end
-            
+
             node.args[5] = const_val_candidate
         end
 
@@ -166,7 +166,7 @@ function glsl_preprocess(node::Expr, mod::Module, ctx::PipelineContext, decl_typ
             if !isnothing(node.args[5]) && type_check_const_init(node.args[5], node.args[2], ctx)
                 if node.args[5] isa Vector
                     init_val = GLSLArrayLiteral([GLSLLiteral(el) for el in node.args[5]])
-                    glsl_type = GLSLArray{init_val.length, init_val.el_type}
+                    glsl_type = GLSLArray{init_val.length,init_val.el_type}
                 else
                     init_val = GLSLLiteral(node.args[5], glsl_type)
                 end

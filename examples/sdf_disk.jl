@@ -1,8 +1,8 @@
-using Transpiler
-using Transpiler.GLSL
+using GLSLTranspiler
+using GLSLTranspiler.GLSL
 using JuliaGLM
 
-Transpiler.transpiler_config.gl_rewrite_to_glm = false
+GLSLTranspiler.transpiler_config.gl_rewrite_to_glm = false
 
 code = @glsl(
     function sdf_disk(
@@ -36,7 +36,7 @@ code = @glsl(
 
         frag_col = Vec4(col, 1.0)
     end,
-    #Transpiler.Verbose
+    #GLSLTranspiler.Verbose
 )
 
 println(code)

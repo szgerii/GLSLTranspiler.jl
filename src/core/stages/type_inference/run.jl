@@ -46,7 +46,7 @@ function run_type_inference(
             if isnothing(type)
                 ast_error(param_decl, "Invalid method parameter type: $src_type (for parameter $name_sym)")
             end
-        elseif param_decl.head == :decl # custom Transpiler decls
+        elseif param_decl.head == :decl # custom GLSLTranspiler decls
             name_sym = param_decl.args[1].value
             type = param_decl.args[2]
 
@@ -102,7 +102,8 @@ function run_type_inference(
     # transform fn body sub-tree from scoped ast into typed ast
     push!(typed_ast.children, gen_typed_ast(scoped_ast.children[2], ctx))
 
-    if get_in_helper(pipeline_ctx) !isempty(typed_ast.children[2].children)
+    if get_in_helper(pipeline_ctx)
+        !isempty(typed_ast.children[2].children)
         last_expr = typed_ast.children[2].children[end]
 
         if ctx.return_type != Nothing

@@ -38,7 +38,7 @@ InterfaceBlock(block_name::Symbol, members::Dict{Symbol,GLSLType}, qualifiers::V
 const __interface_blocks = Dict{Symbol,InterfaceBlock}()
 
 # pull in BlockConflictStrategy enum instances
-using ..Transpiler: BCS_Error, BCS_Overwrite, BCS_OverwriteWarning, BCS_Ignore, BCS_IgnoreWarning
+using ..GLSLTranspiler: BCS_Error, BCS_Overwrite, BCS_OverwriteWarning, BCS_Ignore, BCS_IgnoreWarning
 
 const CFG_MSG_FOOTER = "\nChange TranspilerConfig.gl_block_conflict to customize how this situation is handled"
 
@@ -49,7 +49,7 @@ function add_interface_block(block::InterfaceBlock)
 
     # check for same-block-name conflicts and handle them according to TranspilerConfig
     if haskey(__interface_blocks, name)
-        strategy = Transpiler.transpiler_config.gl_block_conflict
+        strategy = GLSLTranspiler.transpiler_config.gl_block_conflict
 
         strategy == BCS_Error && error("Trying to redefine interface block with block name: ", name, CFG_MSG_FOOTER)
         strategy == BCS_OverwriteWarning && println(
@@ -149,8 +149,8 @@ args:
 
 
 macro interface(block_name::Symbol, members::Expr, instance_name::Union{Symbol,Nothing}=nothing, array_specifier::Union{Int,Nothing}=nothing)
-    members = macroexpand(__module__, members; recursive = true)
-    
+    members = macroexpand(__module__, members; recursive=true)
+
     if members.head != :tuple || !all(mem -> mem isa Expr && mem.head in [:(::), :decl], members.args)
         error(
             "Invalid @interface usage: members need to be provided as a tuple Expr of declarations.\n",
@@ -200,7 +200,7 @@ macro interface(block_name::Symbol, members::Expr, instance_name::Union{Symbol,N
         end
 
         @debug_assert !ismissing(type) || !ismissing(type_ast)
-        
+
         # TODO: parametric types
 
         if ismissing(type) && !ismissing(type_ast)

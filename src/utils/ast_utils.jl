@@ -77,7 +77,7 @@ end
 Return the declaration node of parameter named `name` from function definition expression `f`.
 
 # Returns
-- `Expr`: The expression node, if the declaration is a complex decl (e.g. `function f(a::Int) end`). This also includes Transpiler-specific `Expr(:decl, ...)` nodes.
+- `Expr`: The expression node, if the declaration is a complex decl (e.g. `function f(a::Int) end`). This also includes GLSLTranspiler-specific `Expr(:decl, ...)` nodes.
 - `Symbol`: The symbol node, if the declaration simply consists of the param's name (e.g. `function f(a) end`)
 - `Missing`: `missing`, if a parameter named `name` couldn't be found in `f`
 """
@@ -139,7 +139,7 @@ end
 """
     replace_decls(f::Expr) -> Expr
 
-Return a new function with all Transpiler-specific `Expr(:decl, ...)` declarations replaced with their valid Julia counterpart.
+Return a new function with all GLSLTranspiler-specific `Expr(:decl, ...)` declarations replaced with their valid Julia counterpart.
 """
 function replace_decls(f::Expr)
     @debug_assert f.head == :function

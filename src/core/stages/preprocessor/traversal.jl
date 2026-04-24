@@ -23,7 +23,7 @@ end
 
 # Rewrite 64-bit literals (2.0) to 32-bit literals (2.0f0) if enabled
 preprocess_traverse(node::Float64, _::Module)::Vector{ASTNode} =
-    [Transpiler.transpiler_config.literals_as_f32 ? convert(Float32, node) : node]
+    [GLSLTranspiler.transpiler_config.literals_as_f32 ? convert(Float32, node) : node]
 
 preprocess_traverse(node, ::Module) = [node]
 

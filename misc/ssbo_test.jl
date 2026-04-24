@@ -1,9 +1,9 @@
-using Transpiler
-using Transpiler.GLSL
+using GLSLTranspiler
+using GLSLTranspiler.GLSL
 using JuliaGLM
 
-Transpiler.transpiler_config.gl_block_conflict = Transpiler.BCS_Overwrite
-Transpiler.transpiler_config.gl_rewrite_to_glm = false
+GLSLTranspiler.transpiler_config.gl_block_conflict = GLSLTranspiler.BCS_Overwrite
+GLSLTranspiler.transpiler_config.gl_rewrite_to_glm = false
 
 @interface TestBuffer (x::Int, @coherent(y::Float32), @readonly @volatile v3::Vec3)
 
@@ -32,7 +32,7 @@ code = @glsl(
 
         result = curve(0.0)
     end,
-    #Transpiler.Verbose
+    #GLSLTranspiler.Verbose
 )
 
 println(code)

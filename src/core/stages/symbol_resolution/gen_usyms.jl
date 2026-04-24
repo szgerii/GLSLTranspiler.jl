@@ -3,7 +3,7 @@
 Symbol resolution is performed based on the following logic mostly.
 This was put together through experimentation, as I couldn't find a comprehensive source on Julia's symbol resolution rules,
 except for some basic ones. However, these rules should follow Julia's compiler pretty closely.
-The logic is expanded in gen_usyms! with some Transpiler-specific things too (for handling built-in functions and env symbols, etc.)
+The logic is expanded in gen_usyms! with some GLSLTranspiler-specific things too (for handling built-in functions and env symbols, etc.)
 
 determine target scope through strongest construct
 decl > assign > access

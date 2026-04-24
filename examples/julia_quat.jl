@@ -1,6 +1,6 @@
 using JuliaGLM
-using Transpiler
-using Transpiler.GLSL
+using GLSLTranspiler
+using GLSLTranspiler.GLSL
 
 code = @glsl(
     function julia_quaternion_1(

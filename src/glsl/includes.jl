@@ -1,6 +1,6 @@
 module GLSL
 
-import ..Transpiler
+import ..GLSLTranspiler
 using ..CoreTypes
 using ..Utils
 using ..TypeInference

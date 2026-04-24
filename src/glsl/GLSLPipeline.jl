@@ -1,7 +1,7 @@
 export GLSLPipeline, @glsl
 
 """
-The pipeline the can be ran using [`Transpiler.run_pipeline`](@ref) for Julia -> GLSL transpilation.
+The pipeline the can be ran using [`GLSLTranspiler.run_pipeline`](@ref) for Julia -> GLSL transpilation.
 
 It's made up of the following stages:
 
@@ -15,27 +15,27 @@ It's made up of the following stages:
 """
 const GLSLPipeline = Pipeline("Julia -> GLSL",
     Vector([
-        Transpiler.GLSL.GLSLPreprocessor.GLSLPreprocessorStage,
-        Transpiler.Preprocessor.PreprocessorStage,
-        Transpiler.ScopeDiscovery.ScopeDiscoveryStage,
-        Transpiler.SymbolResolution.SymbolResolutionStage,
-        Transpiler.TypeInference.TypeInferenceStage,
-        Transpiler.GLSL.GLSLTransform.GLSLTransformStage,
-        Transpiler.GLSL.GLSLCodeGen.GLSLCodeGenStage
+        GLSLTranspiler.GLSL.GLSLPreprocessor.GLSLPreprocessorStage,
+        GLSLTranspiler.Preprocessor.PreprocessorStage,
+        GLSLTranspiler.ScopeDiscovery.ScopeDiscoveryStage,
+        GLSLTranspiler.SymbolResolution.SymbolResolutionStage,
+        GLSLTranspiler.TypeInference.TypeInferenceStage,
+        GLSLTranspiler.GLSL.GLSLTransform.GLSLTransformStage,
+        GLSLTranspiler.GLSL.GLSLCodeGen.GLSLCodeGenStage
     ]),
-    Transpiler.GLSL.GLSLPipelineContext
+    GLSLTranspiler.GLSL.GLSLPipelineContext
 )
 
 """
 Shorthand for calling [`@transpile`](@ref) with [`GLSLPipeline`](@ref) as the target pipeline.
 """
-macro glsl(f::Expr, log_level=Transpiler.Silent)
+macro glsl(f::Expr, log_level=GLSLTranspiler.Silent)
     def = gensym()
     output = gensym()
     helpers = gensym()
 
     quote
-        ($def, $output, $helpers) = Transpiler.run_pipeline($GLSLPipeline, $(QuoteNode(f)), $__module__; log_level=$(esc(log_level)))
+        ($def, $output, $helpers) = GLSLTranspiler.run_pipeline($GLSLPipeline, $(QuoteNode(f)), $__module__; log_level=$(esc(log_level)))
 
         $__module__.eval($def)
 

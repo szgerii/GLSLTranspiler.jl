@@ -1,4 +1,4 @@
-import ....Transpiler.TypeInference
+import ....GLSLTranspiler.TypeInference
 
 type_to_str(::Type{GLSLBool}) = "bool"
 type_to_str(::Type{GLSLInt}) = "int"
@@ -6,7 +6,7 @@ type_to_str(::Type{GLSLUInt}) = "uint"
 type_to_str(::Type{GLSLFloat}) = "float"
 type_to_str(::Type{GLSLDouble}) = "double"
 
-type_to_str(::Type{GLSLArray{N, T}}) where {N, T <: GLSLValueType} =
+type_to_str(::Type{GLSLArray{N,T}}) where {N,T<:GLSLValueType} =
     type_to_str(T) * "[" * (N > 0 ? string(N) : "") * "]"
 
 const TYPE_PREFIXES = Dict(

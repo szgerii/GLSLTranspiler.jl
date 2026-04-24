@@ -1,11 +1,11 @@
-using Transpiler
-using Transpiler.GLSL
+using GLSLTranspiler
+using GLSLTranspiler.GLSL
 
 x = 2
 z = 1
 
-(_, code) = Transpiler.run_pipeline(
-    Transpiler.GLSL.GLSLPipeline,
+(_, code) = GLSLTranspiler.run_pipeline(
+    GLSLTranspiler.GLSL.GLSLPipeline,
     :(
         function test()
             function helper()
@@ -17,7 +17,7 @@ z = 1
         end
     ),
     @__MODULE__();
-#    log_level=Transpiler.Verbose
+    #    log_level=GLSLTranspiler.Verbose
 )
 
 println(code)

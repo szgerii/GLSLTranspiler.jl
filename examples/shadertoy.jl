@@ -1,5 +1,5 @@
-using Transpiler
-using Transpiler.GLSL
+using GLSLTranspiler
+using GLSLTranspiler.GLSL
 using JuliaGLM
 
 code = @glsl(
