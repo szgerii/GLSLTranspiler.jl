@@ -116,6 +116,9 @@ function glsl_cg_traverse(node::GLSLCall, ctx::GLSLCodeGenContext)::String
             if !isnothing(usym) && to_glsl_type(usym.type) <: GLSLArray
                 return string(usym.id) * ".length()"
             end
+        elseif node.fn_name.sym == :div
+            @debug_assert length(node.args) == 2
+            return "(" * glsl_cg_traverse(node.args[1], ctx) * " / " * glsl_cg_traverse(node.args[2], ctx) * ")"
         end
     end
 

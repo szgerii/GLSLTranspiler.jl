@@ -4,8 +4,17 @@
 Replaces all [`Symbol`](@ref)s in `node` and its children with the [`UniqueSymbol`](@ref) they refer to, recursively.
 """
 function replace_with_usyms!(node::ScopedASTNode, ctx::SRContext)
-    for child in node.children
-        replace_with_usyms!(child, ctx)
+    ast_node = node.original[]
+
+    is_sym_swizzle = ast_node isa Expr && ast_node.head == :ref && ast_node.args[2] isa QuoteNode
+    
+    if !is_sym_swizzle
+        for child in node.children
+            replace_with_usyms!(child, ctx)
+        end
+    else
+        # don't replace swizzle symbols
+        replace_with_usyms!(node.children[1], ctx)
     end
 
     mappings = get(ctx.usym_mappings, node.scope[].id_chain, nothing)
@@ -15,7 +24,6 @@ function replace_with_usyms!(node::ScopedASTNode, ctx::SRContext)
     end
 
     sym = missing
-    ast_node = node.original[]
     if ast_node isa Symbol
         sym = ast_node
     elseif ast_node isa QuoteNode

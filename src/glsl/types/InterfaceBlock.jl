@@ -95,20 +95,20 @@ function add_qualifier!(block_name::Symbol, qualifier::Qualifier)
     add_qualifier!(block, qualifier)
 end
 
-function add_qualifiers!(block::InterfaceBlock, qualifiers::Vector{Qualifier})
+function add_qualifiers!(block::InterfaceBlock, qualifiers::Vararg{Qualifier})
     for qual in qualifiers
         add_qualifier!(block, qual)
     end
 end
 
-function add_qualifier!(block_name::Symbol, qualifiers::Vector{Qualifier})
+function add_qualifiers!(block_name::Symbol, qualifiers::Vararg{Qualifier})
     block = find_interface_block(block_name)
 
     if isnothing(block)
         error("Trying to add qualifiers to an interface block with the name of '$block_name', but the given block could not be found.")
     end
 
-    add_qualifiers!(block, qualifier)
+    add_qualifiers!(block, qualifiers...)
 end
 
 #=
@@ -147,6 +147,7 @@ args:
 #     )
 # end
 
+
 macro interface(block_name::Symbol, members::Expr, instance_name::Union{Symbol,Nothing}=nothing, array_specifier::Union{Int,Nothing}=nothing)
     members = macroexpand(__module__, members; recursive = true)
     
@@ -161,14 +162,14 @@ macro interface(block_name::Symbol, members::Expr, instance_name::Union{Symbol,N
 
     members_dict = MembersDict()
     for member in members.args
-        sym = missing
+        name_sym = missing
         type = missing
-        type_sym = missing
+        type_ast = missing
         qualifiers = Qualifier[]
 
         if member.head == :(::)
-            sym = member.args[1]
-            type_sym = member.args[2]
+            name_sym = member.args[1]
+            type_ast = member.args[2]
         elseif member.head == :decl
             if ismissing(member.args[2])
                 error(
@@ -193,36 +194,60 @@ macro interface(block_name::Symbol, members::Expr, instance_name::Union{Symbol,N
 
             @debug_assert member.args[2] isa Type
 
-            sym = member.args[1] isa QuoteNode ? member.args[1].value : member.args[1]
+            name_sym = member.args[1] isa QuoteNode ? member.args[1].value : member.args[1]
             type = to_glsl_type(member.args[2])
             qualifiers = member.args[4]
         end
 
-        @debug_assert !ismissing(type) || !ismissing(type_sym)
+        @debug_assert !ismissing(type) || !ismissing(type_ast)
+        
+        # TODO: parametric types
 
-        if ismissing(type) && !ismissing(type_sym)
+        if ismissing(type) && !ismissing(type_ast)
             resolved_type = missing
 
-            for mod in [__module__, Core, JuliaGLM, Base]
-                if isdefined(mod, type_sym) && (type_ref = getfield(mod, type_sym)) isa Type
-                    resolved_type = type_ref
-                end
-            end
+            is_sym = type_ast isa Symbol
+            is_param_t = type_ast isa Expr && type_ast.head == :curly
 
-            if ismissing(resolved_type)
+            if is_sym || is_param_t
+                inspected_modules = [__module__, Core, JuliaGLM, Base]
+
+                if is_sym
+                    for mod in inspected_modules
+                        if isdefined(mod, type_ast) && (type_ref = getfield(mod, type_ast)) isa Type
+                            resolved_type = type_ref
+                        end
+                    end
+                elseif is_param_t
+                    for mod in inspected_modules
+                        try
+                            resolved_type = mod.eval(type_ast)
+                        catch
+                        end
+                    end
+                end
+
+                if ismissing(resolved_type)
+                    error(
+                        "Invalid @interface usage: the type symbol/expression used in the following member declaration appears to be invalid, or doesn't refer to a type:\n",
+                        member, "\n",
+                        "The referenced type has to be visible in one of the following modules: calling module, Core, JuliaGLM, Base"
+                    )
+                end
+            else
                 error(
-                    "Invalid @interface usage: a type symbol used in the following member declaration appears to be invalid, or doesn't refer to a type:\n",
-                    member, "\n",
-                    "The referenced type has to be visible in one of the following modules: calling module, Core, JuliaGLM, Base"
+                    "Invalid @interface usage: an unexpected AST node was received as type for member: ", name_sym, "\n",
+                    "At the AST-level a member type should either be a Symbol or a :curly Expr (for parametric types)"
                 )
             end
 
+            @debug_assert !ismissing(resolved_type)
             type = to_glsl_type(resolved_type)
         end
 
-        @debug_assert !ismissing(sym) && !ismissing(type)
+        @debug_assert !ismissing(name_sym) && !ismissing(type)
 
-        members_dict[sym] = (type, qualifiers)
+        members_dict[name_sym] = (type, qualifiers)
     end
 
     @debug_assert !isempty(members_dict)

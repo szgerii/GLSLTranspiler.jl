@@ -35,6 +35,7 @@ include("pipeline_runner.jl")
 # see the Known Issues section in README.md for possible improvement routes
 
 using JuliaGLM
+using StaticArrays
 using PrecompileTools: @compile_workload
 
 _precomp_global = 0.0f0
@@ -86,6 +87,40 @@ using .GLSL
         y = v2[1]
         y = v3[1]
         y = v4[1]
+    end
+
+    @interface TRANSPILER_PRECOMP_SSBO (JG_TESS_pos_arr::SVector{Vec3},)
+    add_qualifiers!(:TRANSPILER_PRECOMP_SSBO,
+            LayoutQualifier([
+                LayoutQualifierOption(:std430),
+                LayoutQualifierOption(:binding, 0)
+            ]),
+            RestrictQualifier(),
+            WriteOnlyQualifier()
+        )
+
+    @transpile GLSL.GLSLPipeline function callback_fn( @uniform(JG_TESS_t_idx::UVec2), @uniform(JG_TESS_t_range::Vec2), @uniform(center::Vec3T{Float32}), @local_size(256), @uniform(JG_TESS_n::UInt32), @buffer(TRANSPILER_PRECOMP_SSBO))
+        begin
+            JG_TESS_ID = gl_GlobalInvocationID[:x]
+            if JG_TESS_ID >= JG_TESS_n
+                return
+            end
+        end
+        begin
+            JG_TESS_start_idx = JG_TESS_t_idx[:x]
+            JG_TESS_end_idx = JG_TESS_t_idx[:y]
+            JG_TESS_t_start = JG_TESS_t_range[:x]
+            JG_TESS_t_end = JG_TESS_t_range[:y]
+            JG_TESS_idx = JG_TESS_start_idx + JG_TESS_ID
+            JG_TESS_t1 = Float32(JG_TESS_idx - JG_TESS_start_idx)
+            JG_TESS_t2 = Float32(JG_TESS_end_idx - JG_TESS_start_idx)
+            phi = (JG_TESS_t1 / JG_TESS_t2) * (JG_TESS_t_end - JG_TESS_t_start) + JG_TESS_t_start
+        end
+        r = cos(9phi) + 2
+        x = r * cos(8phi)
+        y = r * sin(8phi)
+        z = -(sin(9phi))
+        JG_TESS_pos_arr[JG_TESS_ID + 1] = center[:xyz] + vec3(x, y, z)
     end
 end
 

@@ -24,11 +24,23 @@ function run_type_inference(
         type = missing
         if param_decl.head == :(::) # typed params
             name_sym = param_decl.args[1]
-            type_sym = param_decl.args[2]
+            type_ast = param_decl.args[2]
 
-            @debug_assert type_sym isa Symbol
+            src_type = missing
+            if type_ast isa Symbol
+                src_type = getfield(mod, type_ast)
+            elseif type_ast isa Expr && type_ast.head == :curly
+                src_type = mod.eval(type_ast)
 
-            src_type = getfield(mod, type_sym)
+                if !(src_type isa DataType)
+                    ast_error(param_decl, "Type of method parameter didn't resolve to a DataType in the invoking scope: $name_sym")
+                end
+            else
+                ast_error(param_decl, "Found method parameter with unexpected param type AST: $name_sym")
+            end
+
+            @debug_assert !ismissing(src_type)
+
             type = to_tast(src_type)
 
             if isnothing(type)
