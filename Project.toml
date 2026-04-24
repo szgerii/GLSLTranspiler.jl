@@ -20,3 +20,7 @@ PrecompileTools = "1.2.1"
 StaticArrays = "1.9.15"
 Tagger = "1.0.0"
 Test = "1.11.0"
+
+[sources]
+JuliaGLM = {url = "https://github.com/Csabix/JuliaGLM", rev = "glsl-functions"}
+Tagger = {url = "https://github.com/szgerii/Tagger.jl"}
